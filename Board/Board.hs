@@ -1,7 +1,7 @@
 module Board.Board
 (
   Board(Board),
-  Square(Piece),
+  Square,
   showSquare,
   readSquare,
   boardToList,
@@ -9,6 +9,9 @@ module Board.Board
 ) where
 
 import Board.Pieces
+import Data.List (intercalate)
+import Data.Vector (Vector,toList,fromList,(!),(//))
+import qualified Data.Vector as V
 
 type Square = Maybe Piece
 data Board = Board (Vector(Vector Square)) deriving (Eq)

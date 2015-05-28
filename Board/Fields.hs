@@ -5,7 +5,8 @@ module Board.Fields
   X(X1, X2, X3, X4, X5, X6, X7, X8),
   Y(A, B, C, D, E, F, G, H),
   fieldToPos,
-  posToField
+  posToField,
+  strToField
 ) where
 
 
@@ -58,3 +59,24 @@ posToField (x,y) = Field <$> (intX x) <*> (intY y) where
   intY 6 = Just G
   intY 7 = Just H
   intY _ = Nothing
+
+
+strToField :: String -> Field
+strToField [x,y] = let
+  letterX 'a' = A
+  letterX 'b' = B
+  letterX 'c' = C
+  letterX 'd' = D
+  letterX 'e' = E
+  letterX 'f' = F
+  letterX 'g' = G
+  letterX 'g' = H
+  letterY '1' = X1
+  letterY '2' = X2
+  letterY '3' = X3
+  letterY '4' = X4
+  letterY '5' = X5
+  letterY '6' = X6
+  letterY '7' = X7
+  letterY '8' = X8
+  in Field (letterY y) (letterX x)

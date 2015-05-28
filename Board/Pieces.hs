@@ -5,14 +5,15 @@ module Board.Pieces
     Piece   (Piece),
     showPiece,
     readPiece,
-    pieceValue
+    pieceValue,
+    getType
 ) where
 
 -- Typ gracza (czarny/biały)
-data Player = Black | White deriving (Eq, Ord)
+data Player = Black | White deriving (Eq, Ord, Show)
 
 -- Typ rodzaju figury
-data Type = King | Queen | Bishop | Knight | Rook | Pawn deriving (Eq, Ord)
+data Type = King | Queen | Bishop | Knight | Rook | Pawn deriving (Eq, Ord, Show)
 
 -- Pionek -> połącznie figury i jej koloru
 data Piece = Piece Player Type deriving (Eq, Ord)
@@ -69,4 +70,7 @@ typeValue Rook = 5
 typeValue King = 1000
 
 pieceValue:: Piece -> Integer
-pieceValue (Piece player typ) = typeValue typ
+pieceValue (Piece pl typ) = typeValue typ
+
+getType:: Piece -> Type
+getType (Piece pl typ) = typ
