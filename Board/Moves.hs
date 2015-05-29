@@ -8,7 +8,12 @@ module Board.Moves
   getMoves,
   moveFld,
   getSquarePos,
-  getPieceMoves
+  getPieceMoves,
+  movesOnBoard,
+  onBoard,
+  movesNotFriendlyFire,
+  friendlyFire,
+  add
 )
 where
 
@@ -21,6 +26,7 @@ import qualified Data.Vector as V
 
 
 type Turn = (Board, Player)
+
 
 vertical, diagonal:: [Position]
 vertical = [(0,1),(0,-1),(1,0),(-1,0)]
@@ -46,17 +52,60 @@ getPiece board pos = case getSquarePos board pos of
                       Nothing -> undefined
 
                       -}
+
+friendlyFire:: Player -> Square -> Bool
+friendlyFire _ Nothing = False
+friendlyFire p1 (Just (Piece p2 x)) = p1 == p2
+
+
+add:: Position -> Position -> Position
+add (x1,y1) (x2,y2) = (x1+x2,y1+y2)
+
+--friendlyFire:: Position -> Position -> Bool
+
+onBoard::Position -> Bool
+onBoard (a, b) = a >= 0 && b >= 0 && a <= 7 && b <= 7
+
+
+movesOnBoard:: [Position] -> [Position] -> [Position]
+movesOnBoard (x:xs) s = case onBoard x of
+                        True -> movesOnBoard xs (x:s)
+                        False -> movesOnBoard xs s
+movesOnBoard [] s = s
+
+movesNotFriendlyFire:: Board -> Player -> [Position] -> [Position] -> [Position]
+movesNotFriendlyFire board player (x:xs) s = case friendlyFire player (getSquarePos board x) of
+                        False -> movesNotFriendlyFire board player xs (x:s)
+                        True -> movesNotFriendlyFire board player xs s
+movesNotFriendlyFire board player [] s = s
+
+
+
+possible:: Board -> Player -> Position -> Bool
+possible board player pos = onBoard pos && not (friendlyFire player (getSquarePos board pos))
+
+--showMoves:: Board -> [Position] -> Board
+--showMoves b p =
+
+
 getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
-                      Just (Piece p King) -> getMoves King
-                      Just (Piece p Queen) -> getMoves Queen
-                      Just (Piece p Knight) -> getMoves Knight
-                      Just (Piece p Bishop) -> getMoves Bishop
-                      Just (Piece p Rook) -> getMoves Rook
-                      Just (Piece p Pawn) -> getMoves Pawn
-                      Nothing -> []
+                      Just (Piece p King) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves King)) []) []
+                      Just (Piece p Queen) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Queen)) []) []
+                      Just (Piece p Knight) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Knight)) []) []
+                      Just (Piece p Bishop) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Bishop)) []) []
+                      Just (Piece p Rook) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Rook)) []) []
+                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Pawn)) []) []
 
-                      {-
+
+--getPiecePossibleMoves:: Board -> Position -> [Position]
+
+{-
+
+
+
+
+
 genPieceMoves:: Board -> Position -> [Position]
 genPieceMoves b pos = case getPiece b pos of
                       King -> 1
@@ -142,6 +191,7 @@ getSquare:: Board -> Field -> Square
 getSquare (Board b) fld = let
   (x,y) = fieldToPos fld
   in b ! x ! y
+
 
 getSquarePos:: Board -> Position -> Square
 getSquarePos (Board b) (x,y) = b ! x ! y
