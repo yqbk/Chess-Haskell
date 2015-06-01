@@ -13,7 +13,11 @@ module Board.Moves
   onBoard,
   movesNotFriendlyFire,
   friendlyFire,
-  add
+  add,
+  getMovesPawn,
+  jump,
+  pieceJump,
+  getPlayerPos
 )
 where
 
@@ -27,11 +31,13 @@ import qualified Data.Vector as V
 
 type Turn = (Board, Player)
 
+direction:: Player -> Int
+direction White = -1
+direction Black = 1
 
 vertical, diagonal:: [Position]
 vertical = [(0,1),(0,-1),(1,0),(-1,0)]
 diagonal = [(1,1),(-1,-1),(1,-1),(-1,1)]
-
 
 getMoves:: Type -> [Position]
 getMoves King = vertical ++ diagonal
@@ -39,34 +45,31 @@ getMoves Queen = vertical ++ diagonal
 getMoves Knight = [(1,2),(2,1),(-1,2),(2,-1),(-2,1),(1,-2),(-1,-2),(-2,-1)]
 getMoves Bishop = diagonal
 getMoves Rook = vertical
-getMoves Pawn = []
-
-direction:: Player -> Int
-direction White = 1
-direction Black = -1
 
 {-
-getPiece:: Board -> Position -> Piece
-getPiece board pos = case getSquarePos board pos of
-                      Just p -> p
-                      Nothing -> undefined
+iterateDirection::Int->Position->Board->Type->Position->[Position]
+iterateDirection n pos b f r | notOnBoard aimsAt = []
+                             | otherwise = case getSquare b posToField aimsAt of
+                                             Nothing -> aimsAt:iterateDirection (n+1) pos b f r
+                                             Just (Piece _ f2) -> if f==f2 then [] else [aimsAt]
+   where aimsAt = add (mulitply r n) pos
+-}
 
-                      -}
+mulitply:: Position -> Int -> Position
+mulitply (a,b) x = (a*x,b*x)
+
+add:: Position -> Position -> Position
+add (x1,y1) (x2,y2) = (x1+x2,y1+y2)
 
 friendlyFire:: Player -> Square -> Bool
 friendlyFire _ Nothing = False
 friendlyFire p1 (Just (Piece p2 x)) = p1 == p2
 
-
-add:: Position -> Position -> Position
-add (x1,y1) (x2,y2) = (x1+x2,y1+y2)
-
---friendlyFire:: Position -> Position -> Bool
-
-onBoard::Position -> Bool
+onBoard, notOnBoard::Position -> Bool
 onBoard (a, b) = a >= 0 && b >= 0 && a <= 7 && b <= 7
+notOnBoard = not . onBoard
 
-
+------------------------------------------------------------------
 movesOnBoard:: [Position] -> [Position] -> [Position]
 movesOnBoard (x:xs) s = case onBoard x of
                         True -> movesOnBoard xs (x:s)
@@ -79,23 +82,80 @@ movesNotFriendlyFire board player (x:xs) s = case friendlyFire player (getSquare
                         True -> movesNotFriendlyFire board player xs s
 movesNotFriendlyFire board player [] s = s
 
-
-
 possible:: Board -> Player -> Position -> Bool
 possible board player pos = onBoard pos && not (friendlyFire player (getSquarePos board pos))
 
---showMoves:: Board -> [Position] -> Board
---showMoves b p =
-
-
+------------------------------------------------------------------
 getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
                       Just (Piece p King) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves King)) []) []
-                      Just (Piece p Queen) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Queen)) []) []
                       Just (Piece p Knight) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Knight)) []) []
-                      Just (Piece p Bishop) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Bishop)) []) []
-                      Just (Piece p Rook) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Rook)) []) []
-                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Pawn)) []) []
+                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMovesPawn pos p)) []) []
+                      Just (Piece p x) -> concatMap (jump board pos 1) (getMoves x)
+                      Nothing -> []
+
+pawnFirstMove :: Position -> Player -> Bool
+pawnFirstMove (x,y) pl = case pl of
+                        White -> x == 1
+                        Black -> x == 6
+
+getMovesPawn :: Position -> Player -> [Position]
+getMovesPawn pos pl = case pawnFirstMove pos pl of
+                  True -> case pl of
+                          Black -> [(-1,0),(-2,0)]
+                          White -> [(1,0),(2,0)]
+                  False -> case pl of
+                          Black -> [(-1,0)]
+                          White -> [(1,0)]
+
+jump:: Board -> Position -> Int -> Position -> [Position]
+jump b pos n new | notOnBoard destination = []
+                 | otherwise = case getSquarePos b destination of
+                           Nothing -> destination:jump b pos (n+1) new
+                           Just (Piece pl _) -> case pl == pl2 of
+                                                  True -> []
+                                                  False -> [destination]
+    where destination = add (mulitply new n) pos
+          pl2 = getPlayerPos b pos
+
+------------------------------------------------------------------
+moveFld::Board -> Field -> Field -> Board
+moveFld (Board b) bgn end = let
+  new = getSquare (Board b) bgn
+  (x,y) = fieldToPos end
+  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
+
+deleteSquare:: Board -> Field -> Board
+deleteSquare (Board b) fld = let
+  (x,y) = fieldToPos fld
+  in Board $ b // [ (x,((b ! x) // [(y,Nothing)]))]
+
+getSquare:: Board -> Field -> Square
+getSquare (Board b) fld = let
+  (x,y) = fieldToPos fld
+  in b ! x ! y
+
+getSquarePos:: Board -> Position -> Square
+getSquarePos (Board b) (x,y) = b ! x ! y
+
+getPlayerPos:: Board -> Position -> Player
+getPlayerPos b pos = case getSquarePos b pos of
+                    Just (Piece pl _ ) -> pl
+
+------------------------------------------------------------------
+updateBoard:: Board -> Field -> Field -> Board
+updateBoard b bgn end = deleteSquare (moveFld b bgn end) bgn
+
+movePos:: Board -> Position -> Position -> Board
+movePos (Board b) bgn (x,y) = let
+  new = getSquarePos (Board b) bgn
+  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
+
+move:: Board -> String -> String -> Board
+move board a b = updateBoard board (strToField a) (strToField b)
+
+---------
+pieceJump b pos (Piece x f) = concatMap (jump b pos 1) (getMoves f)
 
 
 --getPiecePossibleMoves:: Board -> Position -> [Position]
@@ -175,34 +235,3 @@ getMove:: Field -> Board -> [Field]
 getMove fld board = let
   c = showSquare (getSquare board fld)
   -}
-
-moveFld::Board -> Field -> Field -> Board
-moveFld (Board b) bgn end = let
-  new = getSquare (Board b) bgn
-  (x,y) = fieldToPos end
-  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
-
-deleteSquare:: Board -> Field -> Board
-deleteSquare (Board b) fld = let
-  (x,y) = fieldToPos fld
-  in Board $ b // [ (x,((b ! x) // [(y,Nothing)]))]
-
-getSquare:: Board -> Field -> Square
-getSquare (Board b) fld = let
-  (x,y) = fieldToPos fld
-  in b ! x ! y
-
-
-getSquarePos:: Board -> Position -> Square
-getSquarePos (Board b) (x,y) = b ! x ! y
-
-updateBoard:: Board -> Field -> Field -> Board
-updateBoard b bgn end = deleteSquare (moveFld b bgn end) bgn
-
-movePos:: Board -> Position -> Position -> Board
-movePos (Board b) bgn (x,y) = let
-  new = getSquarePos (Board b) bgn
-  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
-
-move:: Board -> String -> String -> Board
-move board a b = updateBoard board (strToField a) (strToField b)

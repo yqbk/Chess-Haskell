@@ -9,7 +9,7 @@ module Board.Fields
   strToField
 ) where
 
-
+import Control.Applicative ((<$>),(<*>))
 
 data Field = Field X Y deriving (Eq, Show)
 

@@ -1,7 +1,7 @@
 module Board.Pieces
 (
     Player  (Black, White),
-    Type    (King, Queen, Bishop, Knight, Rook, Pawn),
+    Type    (King, Queen, Bishop, Knight, Rook, Pawn, Puste),
     Piece   (Piece),
     showPiece,
     readPiece,
@@ -13,7 +13,7 @@ module Board.Pieces
 data Player = Black | White deriving (Eq, Ord, Show)
 
 -- Typ rodzaju figury
-data Type = King | Queen | Bishop | Knight | Rook | Pawn deriving (Eq, Ord, Show)
+data Type = King | Queen | Bishop | Knight | Rook | Pawn | Puste deriving (Eq, Ord, Show)
 
 -- Pionek -> połącznie figury i jej koloru
 data Piece = Piece Player Type deriving (Eq, Ord)
@@ -62,6 +62,7 @@ readPiece 'q' = (Piece Black Queen)
 readPiece 'k' = (Piece Black King)
 
 typeValue:: Type -> Integer
+typeValue Puste = 0
 typeValue Pawn = 1
 typeValue Knight = 3
 typeValue Bishop = 3
