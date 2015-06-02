@@ -17,7 +17,10 @@ module Board.Moves
   getMovesPawn,
   jump,
   pieceJump,
-  getPlayerPos
+  getPlayerPos,
+  moveGenerator,
+  friendlyPieces,
+  nextTurn
 )
 where
 
@@ -119,16 +122,13 @@ jump b pos n new | notOnBoard destination = []
           pl2 = getPlayerPos b pos
 
 ------------------------------------------------------------------
-moveFld::Board -> Field -> Field -> Board
-moveFld (Board b) bgn end = let
-  new = getSquare (Board b) bgn
-  (x,y) = fieldToPos end
-  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
-
 deleteSquare:: Board -> Field -> Board
 deleteSquare (Board b) fld = let
   (x,y) = fieldToPos fld
   in Board $ b // [ (x,((b ! x) // [(y,Nothing)]))]
+
+deletePos:: Board -> Position -> Board
+deletePos (Board b) (x,y) = Board $ b // [ (x,((b ! x) // [(y,Nothing)]))]
 
 getSquare:: Board -> Field -> Square
 getSquare (Board b) fld = let
@@ -146,17 +146,61 @@ getPlayerPos b pos = case getSquarePos b pos of
 updateBoard:: Board -> Field -> Field -> Board
 updateBoard b bgn end = deleteSquare (moveFld b bgn end) bgn
 
+moveFld::Board -> Field -> Field -> Board
+moveFld (Board b) bgn end = let
+  new = getSquare (Board b) bgn
+  (x,y) = fieldToPos end
+  in Board $ b // [ (x,((b ! x) // [(y,new)]))]
+
 movePos:: Board -> Position -> Position -> Board
 movePos (Board b) bgn (x,y) = let
   new = getSquarePos (Board b) bgn
   in Board $ b // [ (x,((b ! x) // [(y,new)]))]
 
-move:: Board -> String -> String -> Board
-move board a b = updateBoard board (strToField a) (strToField b)
+move':: Board -> String -> String -> Board
+move' board a b = updateBoard board (strToField a) (strToField b)
+
+move:: Board -> Position -> Position -> Board
+move board a b = deletePos (movePos board a b) a
 
 ---------
 pieceJump b pos (Piece x f) = concatMap (jump b pos 1) (getMoves f)
 
+empty b p = onBoard p && Nothing == (getSquarePos b p)
+
+------------------------------------------------------------------
+moveGenerator:: Board -> Position -> [Board]
+moveGenerator b pos = case getSquarePos b pos of
+                      Nothing -> []
+                      Just piece -> map (move b pos) $ getPieceMoves b pos
+
+friendlyPieces:: Board -> Player -> [Position]
+friendlyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], friendlyFire pl (getSquarePos b (x,y))]
+
+enemyPieces:: Board -> Player -> [Position]
+enemyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], not(friendlyFire pl (getSquarePos b (x,y))), not(empty b (x,y))]
+
+nextTurn:: Turn -> [Turn]
+nextTurn (board,player) = [(newBoard,enemy player)|pos<-enemyPieces board player, newBoard<-moveGenerator board pos]
+
+{-
+colorPos::PieceColor->Board->[Pos]
+colorPos f board = [(a, b)|a<-[0..7],b<-[0..7], hasColor f (getSquare board (a,b))]
+
+hasColor::PieceColor->Square->Bool
+hasColor _ Nothing = False
+hasColor f1 (Just (Piece a f2)) = f1 == f2
+
+
+type Turn = (Board, Player)
+type State = (PieceColor, Board)
+notColor b f p      = inside p && not (hasColor f (getSquare b p))
+empty b p           = inside p && Nothing == (getSquare b p)
+oppositePiece b f p = inside p && hasColor (oppositeColor f) (getSquare b p)
+
+nextStates::State->[State]
+nextStates (f, b) = [(oppositeColor f, b')|pos<-colorPos f b, b'<-genMoves b pos]
+-}
 
 --getPiecePossibleMoves:: Board -> Position -> [Position]
 

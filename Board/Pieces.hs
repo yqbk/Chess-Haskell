@@ -6,11 +6,16 @@ module Board.Pieces
     showPiece,
     readPiece,
     pieceValue,
-    getType
+    getType,
+    enemy
 ) where
 
 -- Typ gracza (czarny/biały)
 data Player = Black | White deriving (Eq, Ord, Show)
+
+enemy:: Player -> Player
+enemy Black = White
+enemy White = Black
 
 -- Typ rodzaju figury
 data Type = King | Queen | Bishop | Knight | Rook | Pawn | Puste deriving (Eq, Ord, Show)
