@@ -49,15 +49,6 @@ getMoves Knight = [(1,2),(2,1),(-1,2),(2,-1),(-2,1),(1,-2),(-1,-2),(-2,-1)]
 getMoves Bishop = diagonal
 getMoves Rook = vertical
 
-{-
-iterateDirection::Int->Position->Board->Type->Position->[Position]
-iterateDirection n pos b f r | notOnBoard aimsAt = []
-                             | otherwise = case getSquare b posToField aimsAt of
-                                             Nothing -> aimsAt:iterateDirection (n+1) pos b f r
-                                             Just (Piece _ f2) -> if f==f2 then [] else [aimsAt]
-   where aimsAt = add (mulitply r n) pos
--}
-
 mulitply:: Position -> Int -> Position
 mulitply (a,b) x = (a*x,b*x)
 
@@ -99,7 +90,6 @@ getPieceMoves board pos = case getSquarePos board pos of
 
 pawnFirstMove :: Position -> Player -> Bool
 pawnFirstMove (x,y) pl = case pl of
-                        White -> x == 1
                         Black -> x == 6
 
 getMovesPawn :: Position -> Player -> [Position]

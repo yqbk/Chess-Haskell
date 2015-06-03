@@ -7,7 +7,8 @@ module Board.Pieces
     readPiece,
     pieceValue,
     getType,
-    enemy
+    enemy,
+    typeValue
 ) where
 
 -- Typ gracza (czarny/biały)
@@ -73,7 +74,7 @@ typeValue Knight = 3
 typeValue Bishop = 3
 typeValue Queen = 9
 typeValue Rook = 5
-typeValue King = 1000
+typeValue King = 0
 
 pieceValue:: Piece -> Integer
 pieceValue (Piece pl typ) = typeValue typ
