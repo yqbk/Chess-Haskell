@@ -20,7 +20,8 @@ module Board.Moves
   getPlayerPos,
   moveGenerator,
   friendlyPieces,
-  nextTurn
+  nextTurn,
+  Turn
 )
 where
 

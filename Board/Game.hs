@@ -2,7 +2,8 @@ module Board.Game
 (
 positionList,
 lista,
-boardValue
+boardValue,
+genGameTree
 )
 where
 
@@ -37,7 +38,35 @@ data Tree a = Node a [Tree a] deriving (Show)
 
 type NodeValue = (State,Board)
 
-type GameTree = Tree NodeValue
+--type GameTree = Tree Turn
+data GameTree = GameTree {turn::Turn, gameTree::[GameTree]} deriving (Show)
 
 addNode:: Tree a -> a -> Tree a
-addNode (Node a subtrees) val = Node a (Node val []):subtrees
+addNode (Node a subtrees) val = Node a ((Node val []):subtrees)
+
+genGameTree::Int -> Turn -> GameTree
+genGameTree 0 node = GameTree node []
+genGameTree depth node | endGame node = GameTree node []
+                       | otherwise = GameTree node (map (genGameTree (depth-1)) (nextTurn node))
+
+
+
+endGame:: Turn -> Bool
+endGame st = sw > final || sw < -final
+   where sw = evalState st
+
+
+evalState:: Turn -> Integer
+evalState = evalBoard . fst
+
+
+{-
+boardAnalysis::Board -> (Int,Int)
+boardAnalysis = foldl addValue (0,0) . concat
+   where addValue points Nothing = points
+         addValue (pw,pb) (Just (Piece a f)) | f == Black = (pw, pb + valuePiece a)
+                                             | otherwise = (pw + valuePiece a, pb)
+-}
+
+evalBoard::Board -> Integer
+evalBoard b = let (p1,p2) = boardValue b in p1-p2

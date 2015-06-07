@@ -8,7 +8,8 @@ module Board.Pieces
     pieceValue,
     getType,
     enemy,
-    typeValue
+    typeValue,
+    final
 ) where
 
 -- Typ gracza (czarny/biały)
@@ -67,6 +68,11 @@ readPiece 'r' = (Piece Black Rook)
 readPiece 'q' = (Piece Black Queen)
 readPiece 'k' = (Piece Black King)
 
+
+infinity = 1000::Integer
+final = 900::Integer
+
+
 typeValue:: Type -> Integer
 typeValue Puste = 0
 typeValue Pawn = 1
@@ -74,7 +80,7 @@ typeValue Knight = 3
 typeValue Bishop = 3
 typeValue Queen = 9
 typeValue Rook = 5
-typeValue King = 0
+typeValue King = infinity
 
 pieceValue:: Piece -> Integer
 pieceValue (Piece pl typ) = typeValue typ
