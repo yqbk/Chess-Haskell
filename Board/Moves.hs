@@ -21,8 +21,9 @@ module Board.Moves
   moveGenerator,
   friendlyPieces,
   nextTurn,
-  Turn
-)
+  Turn,
+  move'
+  )
 where
 
 import Board.Board
@@ -92,6 +93,7 @@ getPieceMoves board pos = case getSquarePos board pos of
 pawnFirstMove :: Position -> Player -> Bool
 pawnFirstMove (x,y) pl = case pl of
                         Black -> x == 6
+                        White -> x == 1
 
 getMovesPawn :: Position -> Player -> [Position]
 getMovesPawn pos pl = case pawnFirstMove pos pl of
@@ -173,6 +175,9 @@ enemyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], not(friendlyFire pl (getSquarePo
 
 nextTurn:: Turn -> [Turn]
 nextTurn (board,player) = [(newBoard,enemy player)|pos<-enemyPieces board player, newBoard<-moveGenerator board pos]
+
+
+
 
 {-
 colorPos::PieceColor->Board->[Pos]

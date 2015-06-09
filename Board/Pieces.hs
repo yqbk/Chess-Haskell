@@ -13,14 +13,17 @@ module Board.Pieces
 ) where
 
 -- Typ gracza (czarny/biały)
-data Player = Black | White deriving (Eq, Ord, Show)
+data Player = Black | White deriving (Eq, Ord)
+instance Show Player where
+  show White = "W"
+  show Black = "B"
 
 enemy:: Player -> Player
 enemy Black = White
 enemy White = Black
 
 -- Typ rodzaju figury
-data Type = King | Queen | Bishop | Knight | Rook | Pawn | Puste deriving (Eq, Ord, Show)
+data Type = King | Queen | Bishop | Knight | Rook | Pawn | Puste deriving (Eq, Ord)
 
 -- Pionek -> połącznie figury i jej koloru
 data Piece = Piece Player Type deriving (Eq, Ord)

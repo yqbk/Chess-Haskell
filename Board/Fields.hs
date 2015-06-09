@@ -6,7 +6,8 @@ module Board.Fields
   Y(A, B, C, D, E, F, G, H),
   fieldToPos,
   posToField,
-  strToField
+  strToField,
+  strToPos
 ) where
 
 import Control.Applicative ((<$>),(<*>))
@@ -80,3 +81,7 @@ strToField [x,y] = let
   letterY '7' = X7
   letterY '8' = X8
   in Field (letterY y) (letterX x)
+
+
+strToPos:: String -> Position
+strToPos str = fieldToPos (strToField str)

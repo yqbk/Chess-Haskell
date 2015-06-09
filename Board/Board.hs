@@ -5,7 +5,9 @@ module Board.Board
   showSquare,
   readSquare,
   boardToList,
-  initBoard
+  initBoard,
+  showBoard,
+  showBoardIndent
 ) where
 
 import Board.Pieces
@@ -16,8 +18,22 @@ import qualified Data.Vector as V
 type Square = Maybe Piece
 data Board = Board (Vector(Vector Square)) deriving (Eq)
 
-showSquare :: Square -> Char
-showSquare = maybe ' ' showPiece
+showSquare::Square->String
+showSquare Nothing = "-- "
+showSquare (Just p) = "[" ++ (showPiece p):[] ++ "]"
+
+showBoard:: [[Square]] -> String
+showBoard = unlines . map (concatMap showSquare)
+
+showBoardIndent::Int->[[Square]]->String
+showBoardIndent x = ('\n':) . (concatMap ((('\n':take x (repeat ' '))++) . concatMap showSquare))
+
+--board2:: Board -> [[Square]]  -> [[Square]]
+--board2 b =
+
+
+--showSquare :: Square -> Char
+--showSquare = maybe ' ' showPiece
 
 readSquare :: Char -> Square
 readSquare ' ' = Nothing
