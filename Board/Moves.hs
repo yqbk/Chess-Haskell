@@ -35,6 +35,7 @@ import qualified Data.Vector as V
 
 
 type Turn = (Board, Player)
+-- o zrobienia data Turn = Turn {board::Board, player::Player, move::Move}
 
 direction:: Player -> Int
 direction White = -1
@@ -94,6 +95,9 @@ pawnFirstMove :: Position -> Player -> Bool
 pawnFirstMove (x,y) pl = case pl of
                         Black -> x == 6
                         White -> x == 1
+
+--pawnEnPassant:: Position -> Player -> Bool
+--pawnEnPassant (x,y) pl
 
 getMovesPawn :: Position -> Player -> [Position]
 getMovesPawn pos pl = case pawnFirstMove pos pl of

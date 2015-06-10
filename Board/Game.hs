@@ -8,7 +8,10 @@ prettyGameTree,
 applyAll,
 doMove,
 gameComp,
-printPosition
+printPosition,
+compareSquare,
+listOfTurns,
+getMoveFromTurn
 )
 where
 
@@ -19,6 +22,7 @@ import Board.Moves
 
 
 type State = (Integer, Integer)
+type Move = (Position, Position)
 
 lista = positionList [] 0 0
 
@@ -96,6 +100,30 @@ findBest f cmp ((x1,y1):xs) | winningState f y1 = (x1,y1)
                                              if cmp x1 x2 then (x1,y1) else (x2,y2)
 
 depthh = 3
+
+------------------ZŁOTO--------------------------------
+
+listOfTurns:: Turn -> [Turn] -> [Turn]
+listOfTurns x xs = (doMove x):xs
+
+getMoveFromTurn:: [Turn] -> Move
+getMoveFromTurn (a:b:xs) = getDifference (fst a) (concat $ boardToList(fst a)) (fst b) (concat $ boardToList(fst b))
+getMoveFromTurn (a:xs) = getDifference (fst a) (concat $ boardToList(fst a)) initBoard (concat $ boardToList(initBoard))
+
+findSquarePos:: Board -> Square -> [Position] -> Position
+findSquarePos b sqr (x:list) | getSquarePos b x == sqr = x
+                             | otherwise = findSquarePos b sqr list
+
+getDifference:: Board -> [Square] -> Board -> [Square] -> Move
+getDifference b1 (x:xs) b2 (y:ys) = case compareSquare x y of
+                              True -> getDifference b1 xs b2 ys
+                              False -> (findSquarePos b1 x lista, findSquarePos b2 x lista)
+
+compareSquare:: Square -> Square -> Bool
+compareSquare a b | a == b = True
+                  | otherwise = False
+
+----------------------------------------------------------------------------------------------
 doMove::Turn -> Turn
 doMove z = case (genGameTree depthh z) of
                   GameTree p [] -> p
