@@ -20,7 +20,8 @@ module Board.Moves
   getPlayerPos,
   moveGenerator,
   friendlyPieces,
-  nextTurn,
+  nextPossibleTurn,
+  pawnAttack,
   Turn,
   move'
   )
@@ -62,6 +63,10 @@ friendlyFire:: Player -> Square -> Bool
 friendlyFire _ Nothing = False
 friendlyFire p1 (Just (Piece p2 x)) = p1 == p2
 
+--enemyFire:: Player -> Square -> Bool
+--friendlyFire _ Nothing = False
+--friendlyFire p1 (Just (Piece p2 x)) = p1 != p2
+
 onBoard, notOnBoard::Position -> Bool
 onBoard (a, b) = a >= 0 && b >= 0 && a <= 7 && b <= 7
 notOnBoard = not . onBoard
@@ -87,7 +92,7 @@ getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
                       Just (Piece p King) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves King)) []) []
                       Just (Piece p Knight) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Knight)) []) []
-                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMovesPawn pos p)) []) []
+                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard ((correctPawnMove board pos (map (add pos) (getMovesPawn board pos p)) [])++(pawnAttack board p pos)) []) []
                       Just (Piece p x) -> concatMap (jump board pos 1) (getMoves x)
                       Nothing -> []
 
@@ -99,14 +104,39 @@ pawnFirstMove (x,y) pl = case pl of
 --pawnEnPassant:: Position -> Player -> Bool
 --pawnEnPassant (x,y) pl
 
-getMovesPawn :: Position -> Player -> [Position]
-getMovesPawn pos pl = case pawnFirstMove pos pl of
+
+
+pawnAttack:: Board -> Player -> Position -> [Position]
+pawnAttack b pl pos = case pl of
+                      White -> concatMap (checkPawnAttack b pos) ((1,-1):(1,1):[])
+                      otherwise -> concatMap (checkPawnAttack b pos) ((-1,-1):(-1,1):[])
+
+
+checkPawnAttack:: Board -> Position -> Position -> [Position]
+checkPawnAttack b pos new | notOnBoard destination = []
+                          | otherwise = case getSquarePos b destination of
+                             Nothing -> []
+                             Just (Piece pl _) -> case pl == pl2 of
+                                                  True -> []
+                                                  False -> [destination]
+              where destination = add new pos
+                    pl2 = getPlayerPos b pos
+
+correctPawnMove:: Board -> Position -> [Position] -> [Position] ->[Position]
+correctPawnMove b pos (x:xs) y = case getSquarePos b x of
+                              Nothing -> correctPawnMove b pos xs (x:y)
+                              otherwise -> correctPawnMove b pos xs y
+correctPawnMove b pos [] y = y
+
+
+getMovesPawn :: Board -> Position -> Player -> [Position]
+getMovesPawn b pos pl = case pawnFirstMove pos pl of
                   True -> case pl of
-                          Black -> [(-1,0),(-2,0)]
-                          White -> [(1,0),(2,0)]
+                          Black -> ((-1,0):(-2,0):[])
+                          White -> ((1,0):(2,0):[])
                   False -> case pl of
-                          Black -> [(-1,0)]
-                          White -> [(1,0)]
+                          Black -> ((-1,0):[])
+                          White -> ((1,0):[])
 
 jump:: Board -> Position -> Int -> Position -> [Position]
 jump b pos n new | notOnBoard destination = []
@@ -177,8 +207,8 @@ friendlyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], friendlyFire pl (getSquarePos
 enemyPieces:: Board -> Player -> [Position]
 enemyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], not(friendlyFire pl (getSquarePos b (x,y))), not(empty b (x,y))]
 
-nextTurn:: Turn -> [Turn]
-nextTurn (board,player) = [(newBoard,enemy player)|pos<-enemyPieces board player, newBoard<-moveGenerator board pos]
+nextPossibleTurn:: Turn -> [Turn]
+nextPossibleTurn (board,player) = [(newBoard,enemy player)|pos<-enemyPieces board player, newBoard<-moveGenerator board pos]
 
 
 

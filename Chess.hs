@@ -48,23 +48,12 @@ listToBoard list = Board $ fromList $ map fromList $ concat [list]
 mate1 = (listToBoard mateBoard1, White)
 mate2 = (listToBoard mateBoard2, Black)
 
--- Falkbeer Countergambit
-{-
-exampleOpening = [move' "e2" "e4",
-                  move' "e7" "e5",
-                  move' "f2" "f4",
-                  move' "d7" "d5"]
--}
---outputExampleOpening = putStr $ showBoard $ playGame exampleOpening
---exampleGame = putStr $ concatMap (("\n"++) . showBoard . snd ) $ take 10 $ iterate doMove (White,initBoard)
+
 exampleMateGame1 = putStr $ concatMap printPosition $ gameComp mate1
 exampleMateGame2 = putStr $ concatMap printPosition $ gameComp mate2
 start = putStr $ concatMap printPosition $ gameComp (initBoard, White)
 
 -------------------------------------------------------
-
-
-
 
 parseLetter :: Parser Char
 parseLetter = oneOf "abcdefgh"
@@ -122,6 +111,6 @@ main = do
   --let args = ["w"]
   case (listToMaybe args) of
     Just "b" -> go
-    Just "w" -> putStrLn "a2c4" >> hFlush stdout>> go -- białe wykonują pierwszy ruch
+    Just "w" -> putStrLn "a2c4" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
     Nothing -> go  -- domyślnie grają czarne
     where go = evalStateT doPlay []

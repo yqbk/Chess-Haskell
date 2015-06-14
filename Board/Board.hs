@@ -28,13 +28,6 @@ showBoard = unlines . map (concatMap showSquare)
 showBoardIndent::Int->[[Square]]->String
 showBoardIndent x = ('\n':) . (concatMap ((('\n':take x (repeat ' '))++) . concatMap showSquare))
 
---board2:: Board -> [[Square]]  -> [[Square]]
---board2 b =
-
-
---showSquare :: Square -> Char
---showSquare = maybe ' ' showPiece
-
 readSquare :: Char -> Square
 readSquare ' ' = Nothing
 readSquare c   = Just (readPiece c)
