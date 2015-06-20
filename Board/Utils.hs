@@ -4,6 +4,7 @@ State,
 positionList,
 lista,
 fst',
+lst,
 zeroMove
 )
 where
@@ -33,5 +34,7 @@ positionList list a b
 fst':: (a,b,c) -> a
 fst' (a,b,c) = a
 
+lst :: (a,b,c) -> c
+lst (a,b,c) = c
 
 ----------------------------------------------------------------------------------------------

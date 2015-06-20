@@ -23,14 +23,15 @@ module Board.Moves
   nextPossibleTurn,
   pawnAttack,
   Turn,
-  move'
+  move',
+  enemyPieces
   )
 where
 
 import Board.Board
 import Board.Fields
 import Board.Pieces
-import Data.List (intercalate)
+import Data.List (intercalate,(\\))
 import Data.Vector (Vector,toList,fromList,(!),(//))
 import qualified Data.Vector as V
 
@@ -180,8 +181,13 @@ movePos (Board b) bgn (x,y) = let
   new = getSquarePos (Board b) bgn
   in Board $ b // [ (x,((b ! x) // [(y,new)]))]
 
-move':: Board -> String -> String -> Board
-move' board a b = updateBoard board (strToField a) (strToField b)
+move':: Board -> String -> Board
+move' board (str) = let
+  halfStr = take 2 str
+  a = strToPos halfStr
+  b = strToPos (take 2 (str \\ halfStr))
+  in move board a b
+
 
 move:: Board -> Position -> Position -> Board
 move board a b = deletePos (movePos board a b) a
@@ -209,4 +215,4 @@ enemyPieces:: Board -> Player -> [Position]
 enemyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], not(friendlyFire pl (getSquarePos b (x,y))), not(empty b (x,y))]
 
 nextPossibleTurn:: Turn -> [Turn]
-nextPossibleTurn (board,player,(x,y)) = [(newBoard,enemy player,(posToStr pos, posToStr newPos))|pos<-enemyPieces board player, newBoard<-moveGenerator board pos, newPos<- getMove board pos]
+nextPossibleTurn (b,pl,(_,_)) = [(newBoard,enemy pl,(posToStr enemyPos, posToStr newPos))|enemyPos<-enemyPieces b pl, newBoard<-moveGenerator b enemyPos, newPos<- getMove b enemyPos]

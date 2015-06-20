@@ -85,7 +85,7 @@ strToField [x,y] = let
 
 
 posToStr:: Position -> String
-posToStr (x,y) = (getX x)++(getY y)
+posToStr (y,x) = (getX x)++(getY y)
 
 getX x | x == 0 = "a"
        | x == 1 = "b"
