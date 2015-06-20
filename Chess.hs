@@ -111,8 +111,9 @@ type Gameplay a = StateT ([ACN]) IO a
 
 printHistory :: Show a => [a] -> IO ()
 printHistory h =  do
-  hPutStrLn stderr "\n--Game history--"
+  hPutStrLn stderr "\n--------------\n--Game history--"
   mapM_ (hPutStrLn stderr.show) h
+  --hPutStrLn stderr
   hPutStrLn stderr "----------------\n"
 
 
@@ -120,9 +121,10 @@ play :: String -> Gameplay ()
 play i = do
   s<- get
   case parse parseACN "Parsing ACN error" i of
-    Right acn -> (liftIO $ hPutStrLn stderr $ "\nactual move = " ++ (show acn)) >> put (acn:s)
+    Right acn -> put (acn:s)
     Left _ -> fail ("koniec")
-  liftIO $ printHistory s
+  --liftIO $ printHistory s
+  --(liftIO $ hPutStrLn stderr $ "\nactual move = " ++ (show acn)) >>
   liftIO $ putStrLn (responseMove $ actualBoard (map acnToStr s) initBoard) >> hFlush stdout
 
 
@@ -133,7 +135,7 @@ actualBoard [] b = b
 
 responseMove:: Board -> String
 responseMove board = let
-  (_,_,(a,b)) = nextTurn (board, Black, zeroMove)
+  (_,_,(a,b)) = nextTurn (board, White, zeroMove)
   in a++b
 
 
@@ -151,6 +153,6 @@ main = do
   --let args = ["w"]
   case (listToMaybe args) of
     Just "b" -> go
-    Just "w" -> putStrLn "a2a4" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
+    Just "w" -> putStrLn "d7d5" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
     Nothing -> go  -- domyślnie grają czarne
     where go = evalStateT doPlay []

@@ -7,9 +7,9 @@ genGameTree,
 nextTurn,
 posValue,
 evalTurn,
-chooseBestBranch,
-evalBranch,
-GameTree
+GameTree,
+evalBoard,
+addValue
 )
 where
 
@@ -25,8 +25,8 @@ boardValue b = foldl (addValue b) (0,0) lista
 
 addValue:: Board -> State -> Position -> State
 addValue b (white, black) pos = case getSquarePos b pos of
-                                  Just (Piece Black x) -> (white, (black+(posValue b Black x pos)))
-                                  Just (Piece White x) -> ((white+(posValue b White x pos)), black)
+                                  Just (Piece Black x) -> ((white+(posValue b White x pos)), (black))
+                                  Just (Piece White x) -> (white, (black+(posValue b Black x pos)))
                                   Nothing -> (white, black)
 
 posValue:: Board -> Player -> Type -> Position -> Integer
@@ -43,8 +43,8 @@ evalBoard b = let (p1,p2) = boardValue b in p1-p2
 ---- Correction for evaluation Pawns ----
 prefPawnPos:: Board -> Player -> Position -> Integer
 prefPawnPos b pl (x,y) = case pl of
-   White -> maximum ((toInteger(quot (abs (0 - x)) 2)):1:[])
-   Black -> maximum ((toInteger(quot (abs (7 - x)) 2)):1:[])
+   White -> maximum ((toInteger(quot (abs (8 - x)) 2)):1:[])
+   Black -> maximum ((toInteger(quot (abs ((-1) - x)) 2)):1:[])
 
 ---------------------------------------------------------
 ---- Game Tree ----
@@ -72,37 +72,37 @@ winningState Black turn = evalTurn turn < -final
 ---- Minimax algorithm ----
 ---------------------------------------------------------
 
-depth = 3
+depth = 2
 
-{-
+
 
 
 play::GameTree->Integer
 play (GameTree p []) = evalTurn p
-play (GameTree (White,_) xs) = maximum (map play xs)
-play (GameTree (Black,_) xs) = minimum (map play xs)
+play (GameTree (_,White,_) xs) = maximum (map play xs)
+play (GameTree (_,Black,_) xs) = minimum (map play xs)
 
 nextTurn::Turn->Turn
 nextTurn z = case (genGameTree depth z) of
                   GameTree p [] -> p
-                  GameTree (f, _) xs -> snd (findBest f (comp f) (map (\x->(play x, state x)) xs))
+                  GameTree (_, f, _) xs -> snd (findBest f (comp f) (map (\x->(play x, turn x)) xs))
     where comp White = (>)
           comp Black = (<)
 
-findBest :: PieceColor -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
+findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
 findBest _ _ [x] = x
 findBest f cmp ((x1,y1):xs) | winningState f y1 = (x1,y1)
                             | otherwise = let (x2, y2) = findBest f cmp xs in
                                              if cmp x1 x2 then (x1,y1) else (x2,y2)
 
-                                             -}
+
 
 
 
                                              ----CO PODAC W FIND PATH
 
 
-
+{-
 cmp:: Player -> (Integer -> Integer -> Bool)
 cmp White = (>)
 cmp Black = (<)
@@ -112,11 +112,11 @@ originPath pl tree = findPath pl tree tree
 
 nextTurn:: Turn -> Turn
 nextTurn (b,pl,pos) = let
-    branches = getBranches (genGameTree depth (b,pl,pos)) []
     tree = genGameTree depth (b,pl,pos)
+    branches = getBranches tree []
     firstBranch = head branches
     firstBranchValue = evalTurn (turn firstBranch)
-  in turn (getBest (map (originPath pl) branches) (cmp $ enemy pl) (firstBranchValue, firstBranch))
+  in turn (getBest (map (originPath pl) branches) (cmp pl) (firstBranchValue, firstBranch))
 
 
 getBest:: [(Integer,GameTree)] -> (Integer -> Integer -> Bool) -> (Integer,GameTree) -> GameTree
@@ -141,7 +141,7 @@ getBest ((actualVal, node):xs) operator (val,tree) = case operator actualVal val
 findPath:: Player -> GameTree -> GameTree -> (Integer,GameTree)
 findPath p origin (GameTree node []) = (evalTurn node, origin)
 findPath p origin actual@(GameTree (b, pl,_) xs) | pl == p   = findPath p origin (chooseBestBranch (cmp $ enemy p) (actualVal actual) (evalBranch actual []))
-                                               | otherwise = (bestVal, origin)
+                                                 | otherwise = (bestVal, origin)
     where
           actualVal (GameTree node xs) = (evalTurn node, GameTree node xs)
           branches = getBranches actual []
@@ -164,3 +164,4 @@ chooseBestBranch cmp (val,node) ((maxVal, newNode):xs)  = case cmp val maxVal of
                       True -> chooseBestBranch cmp (val, node) xs
                       otherwise -> chooseBestBranch cmp (maxVal, newNode) xs
 chooseBestBranch cmp (val,node) [] = node
+-}

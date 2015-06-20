@@ -13,7 +13,6 @@ module Board.Moves
   onBoard,
   movesNotFriendlyFire,
   friendlyFire,
-  add,
   getMovesPawn,
   jump,
   pieceJump,
@@ -24,24 +23,26 @@ module Board.Moves
   pawnAttack,
   Turn,
   move',
-  enemyPieces
+  enemyPieces,
+  pawnFirstMove
   )
 where
 
 import Board.Board
 import Board.Fields
 import Board.Pieces
+import Board.Utils
 import Data.List (intercalate,(\\))
 import Data.Vector (Vector,toList,fromList,(!),(//))
 import qualified Data.Vector as V
 
-
+---- Keep actual game state ----
 type Turn = (Board, Player, (String,String))
--- o zrobienia data Turn = Turn {board::Board, player::Player, move::Move}
 
+---- Set move options and moves utils ----
 direction:: Player -> Int
-direction White = -1
-direction Black = 1
+direction White = 1
+direction Black = -1
 
 vertical, diagonal:: [Position]
 vertical = [(0,1),(0,-1),(1,0),(-1,0)]
@@ -53,12 +54,6 @@ getMoves Queen = vertical ++ diagonal
 getMoves Knight = [(1,2),(2,1),(-1,2),(2,-1),(-2,1),(1,-2),(-1,-2),(-2,-1)]
 getMoves Bishop = diagonal
 getMoves Rook = vertical
-
-mulitply:: Position -> Int -> Position
-mulitply (a,b) x = (a*x,b*x)
-
-add:: Position -> Position -> Position
-add (x1,y1) (x2,y2) = (x1+x2,y1+y2)
 
 friendlyFire:: Player -> Square -> Bool
 friendlyFire _ Nothing = False
@@ -95,8 +90,8 @@ getPieceMoves board pos = case getSquarePos board pos of
 
 pawnFirstMove :: Position -> Player -> Bool
 pawnFirstMove (x,y) pl = case pl of
-                        Black -> x == 6
                         White -> x == 1
+                        Black -> x == 6
 
 --pawnEnPassant:: Position -> Player -> Bool
 --pawnEnPassant (x,y) pl
@@ -105,8 +100,8 @@ pawnFirstMove (x,y) pl = case pl of
 
 pawnAttack:: Board -> Player -> Position -> [Position]
 pawnAttack b pl pos = case pl of
+                      Black -> concatMap (checkPawnAttack b pos) ((-1,-1):(-1,1):[])
                       White -> concatMap (checkPawnAttack b pos) ((1,-1):(1,1):[])
-                      otherwise -> concatMap (checkPawnAttack b pos) ((-1,-1):(-1,1):[])
 
 
 checkPawnAttack:: Board -> Position -> Position -> [Position]
@@ -142,7 +137,7 @@ jump b pos n new | notOnBoard destination = []
                            Just (Piece pl _) -> case pl == pl2 of
                                                   True -> []
                                                   False -> [destination]
-    where destination = add (mulitply new n) pos
+    where destination = add (multiply new n) pos
           pl2 = getPlayerPos b pos
 
 ------------------------------------------------------------------

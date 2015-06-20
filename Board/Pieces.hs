@@ -44,32 +44,32 @@ instance Show Piece where
   show (Piece White Pawn) = "p"
 
 showPiece :: Piece -> Char
-showPiece (Piece White Pawn)   = 'P'
-showPiece (Piece White Knight) = 'N'
-showPiece (Piece White Bishop) = 'B'
-showPiece (Piece White Rook)   = 'R'
-showPiece (Piece White Queen)  = 'Q'
-showPiece (Piece White King)   = 'K'
-showPiece (Piece Black Pawn)   = 'p'
-showPiece (Piece Black Knight) = 'n'
-showPiece (Piece Black Bishop) = 'b'
-showPiece (Piece Black Rook)   = 'r'
-showPiece (Piece Black Queen)  = 'q'
-showPiece (Piece Black King)   = 'k'
+showPiece (Piece Black Pawn)   = 'P'
+showPiece (Piece Black Knight) = 'N'
+showPiece (Piece Black Bishop) = 'B'
+showPiece (Piece Black Rook)   = 'R'
+showPiece (Piece Black Queen)  = 'Q'
+showPiece (Piece Black King)   = 'K'
+showPiece (Piece White Pawn)   = 'p'
+showPiece (Piece White Knight) = 'n'
+showPiece (Piece White Bishop) = 'b'
+showPiece (Piece White Rook)   = 'r'
+showPiece (Piece White Queen)  = 'q'
+showPiece (Piece White King)   = 'k'
 
 readPiece :: Char -> Piece
-readPiece 'P' = (Piece White Pawn)
-readPiece 'N' = (Piece White Knight)
-readPiece 'B' = (Piece White Bishop)
-readPiece 'R' = (Piece White Rook)
-readPiece 'Q' = (Piece White Queen)
-readPiece 'K' = (Piece White King)
-readPiece 'p' = (Piece Black Pawn)
-readPiece 'n' = (Piece Black Knight)
-readPiece 'b' = (Piece Black Bishop)
-readPiece 'r' = (Piece Black Rook)
-readPiece 'q' = (Piece Black Queen)
-readPiece 'k' = (Piece Black King)
+readPiece 'P' = (Piece Black Pawn)
+readPiece 'N' = (Piece Black Knight)
+readPiece 'B' = (Piece Black Bishop)
+readPiece 'R' = (Piece Black Rook)
+readPiece 'Q' = (Piece Black Queen)
+readPiece 'K' = (Piece Black King)
+readPiece 'p' = (Piece White Pawn)
+readPiece 'n' = (Piece White Knight)
+readPiece 'b' = (Piece White Bishop)
+readPiece 'r' = (Piece White Rook)
+readPiece 'q' = (Piece White Queen)
+readPiece 'k' = (Piece White King)
 
 infinity = 1000::Integer
 final = 900::Integer  -- kto ma mniej niz 900 przegrywa
@@ -77,10 +77,10 @@ final = 900::Integer  -- kto ma mniej niz 900 przegrywa
 typeValue:: Type -> Integer
 typeValue Puste = 0
 typeValue Pawn = 1
-typeValue Knight = 3
-typeValue Bishop = 3
+typeValue Knight = 4
+typeValue Bishop = 4
 typeValue Queen = 9
-typeValue Rook = 5
+typeValue Rook = 6
 typeValue King = infinity
 
 pieceValue:: Piece -> Integer

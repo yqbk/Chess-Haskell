@@ -6,8 +6,7 @@ module Board.Board
   readSquare,
   boardToList,
   initBoard,
-  showBoard,
-  showBoardIndent
+  showBoard
 ) where
 
 import Board.Pieces
@@ -18,16 +17,15 @@ import qualified Data.Vector as V
 type Square = Maybe Piece
 data Board = Board (Vector(Vector Square)) deriving (Eq)
 
+---- Show Board ----
 showSquare::Square->String
-showSquare Nothing = "-- "
-showSquare (Just p) = "[" ++ (showPiece p):[] ++ "]"
+showSquare Nothing = ". "
+showSquare (Just p) =  (showPiece p):[] ++ " "
 
 showBoard:: [[Square]] -> String
 showBoard = unlines . map (concatMap showSquare)
 
-showBoardIndent::Int->[[Square]]->String
-showBoardIndent x = ('\n':) . (concatMap ((('\n':take x (repeat ' '))++) . concatMap showSquare))
-
+---- Board utils ----
 readSquare :: Char -> Square
 readSquare ' ' = Nothing
 readSquare c   = Just (readPiece c)
@@ -35,6 +33,7 @@ readSquare c   = Just (readPiece c)
 boardToList :: Board -> [[Square]]
 boardToList (Board l) = toList $ V.map toList l
 
+---- Build Board ----
 initBoard :: Board
 initBoard = Board $ fromList $ map fromList $ concat [
   [ whiteRearLine, whiteFrontLine ]
@@ -48,18 +47,9 @@ initBoard = Board $ fromList $ map fromList $ concat [
     blackRearLine    = rearLine Black
     emptyLine        = replicate 8 Nothing
     frontLine player = replicate 8 $ Just $ Piece player Pawn
-    rearLine  player = map (Just . (Piece player)) [
-      Rook
-      ,Knight
-      ,Bishop
-      ,Queen
-      ,King
-      ,Bishop
-      ,Knight
-      ,Rook
-      ]
+    rearLine  player = map (Just . (Piece player)) [Rook, Knight ,Bishop ,Queen ,King ,Bishop ,Knight ,Rook]
 
-
+---- Show Board ----
 instance Show Board where
   show board = (unlines ((borderLine : boardStr) ++ [borderLine,bottomLegend]))
     where
