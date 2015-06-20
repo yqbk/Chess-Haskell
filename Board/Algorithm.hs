@@ -4,14 +4,12 @@ positionList,
 lista,
 boardValue,
 genGameTree,
-prettyGameTree,
-applyAll,
-doMove,
-gameComp,
-printPosition,
-compareSquare,
-listOfTurns,
-getMoveFromTurn
+nextTurn,
+posValue,
+evalTurn,
+chooseBestBranch,
+evalBranch,
+GameTree
 )
 where
 
@@ -19,133 +17,209 @@ import Board.Board
 import Board.Fields
 import Board.Pieces
 import Board.Moves
+import Board.Utils
 
-
-type State = (Integer, Integer)
-type Move = (Position, Position)
-
-lista = positionList [] 0 0
-
-positionList:: [Position] -> Int -> Int -> [Position]
-positionList list a b
-  | a < 7 = positionList ((a,b):list) (a+1) b
-  | b < 7 = positionList ((a,b):list) 0 (b+1)
-  | otherwise = ((7,7):list)
-
-addValue:: Board -> State -> Position -> State
-addValue b (black, white) pos = case getSquarePos b pos of
-                                  Just (Piece Black x) -> ((black+(typeValue x)), white)
-                                  Just (Piece White x) -> (black, (white+(typeValue x)))
-                                  Nothing -> (black, white)
-
-
+---- Evaluation board ----
 boardValue:: Board -> State
 boardValue b = foldl (addValue b) (0,0) lista
 
+addValue:: Board -> State -> Position -> State
+addValue b (white, black) pos = case getSquarePos b pos of
+                                  Just (Piece Black x) -> (white, (black+(posValue b Black x pos)))
+                                  Just (Piece White x) -> ((white+(posValue b White x pos)), black)
+                                  Nothing -> (white, black)
+
+posValue:: Board -> Player -> Type -> Position -> Integer
+posValue b player x pos = case x of
+  Pawn -> (typeValue Pawn) + (prefPawnPos b player pos)
+  otherwise -> typeValue x
+
+evalTurn:: Turn -> Integer
+evalTurn = evalBoard . fst'
+
+evalBoard::Board -> Integer
+evalBoard b = let (p1,p2) = boardValue b in p1-p2
+
+---- Correction for evaluation Pawns ----
+prefPawnPos:: Board -> Player -> Position -> Integer
+prefPawnPos b pl (x,y) = case pl of
+   White -> maximum ((toInteger(quot (abs (0 - x)) 2)):1:[])
+   Black -> maximum ((toInteger(quot (abs (7 - x)) 2)):1:[])
+
 ---------------------------------------------------------
-data Tree a = Node a [Tree a] deriving (Show)
+---- Game Tree ----
+---------------------------------------------------------
 
-type NodeValue = (State,Board)
-
---type GameTree = Tree Turn
 data GameTree = GameTree {turn::Turn, gameTree::[GameTree]} deriving (Show)
-
-addNode:: Tree a -> a -> Tree a
-addNode (Node a subtrees) val = Node a ((Node val []):subtrees)
 
 genGameTree::Integer -> Turn -> GameTree
 genGameTree 0 node = GameTree node []
 genGameTree depth node | endGame node = GameTree node []
-                       | otherwise = GameTree node (map (genGameTree (depth-1)) (nextTurn node))
-
-
+                       | otherwise = GameTree node (map (genGameTree (depth-1)) (nextPossibleTurn node))
 
 endGame:: Turn -> Bool
-endGame st = sw > final || sw < -final
-   where sw = evalState st
-
-
-evalState:: Turn -> Integer
-evalState = evalBoard . fst
-
-evalBoard::Board -> Integer
-evalBoard b = let (p1,p2) = boardValue b in p1-p2
------------------syf------------------------------------------
-
-
-
-
-prettyGameTree::GameTree->String
-prettyGameTree = prettyGameTree2 0
-   where prettyGameTree2 x (GameTree z bs) = showBoardIndent (10*x) (boardToList(fst z)) ++
-                                               ' ':show (evalState z) ++
-                                               concatMap (prettyGameTree2 (x+1)) bs
-
-
-
-
-play::GameTree -> Integer
-play (GameTree p []) = evalState p
-play (GameTree (_, White) xs) = maximum (map play xs)
-play (GameTree (_, Black) xs) = minimum (map play xs)
+endGame turn = value > final || value < -final
+   where value = evalTurn turn
 
 winningState::Player->Turn->Bool
-winningState White st = evalState st > final
-winningState Black st = evalState st < -final
+winningState White turn = evalTurn turn > final --- dopisać szachmat
+winningState Black turn = evalTurn turn < -final
+--winningState _ turn = val > final || val < -final ---- ??? up
+  --where val = evalTurn turn
 
-findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
+
+---------------------------------------------------------
+---- Minimax algorithm ----
+---------------------------------------------------------
+
+depth = 3
+
+{-
+
+
+play::GameTree->Integer
+play (GameTree p []) = evalTurn p
+play (GameTree (White,_) xs) = maximum (map play xs)
+play (GameTree (Black,_) xs) = minimum (map play xs)
+
+nextTurn::Turn->Turn
+nextTurn z = case (genGameTree depth z) of
+                  GameTree p [] -> p
+                  GameTree (f, _) xs -> snd (findBest f (comp f) (map (\x->(play x, state x)) xs))
+    where comp White = (>)
+          comp Black = (<)
+
+findBest :: PieceColor -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
 findBest _ _ [x] = x
 findBest f cmp ((x1,y1):xs) | winningState f y1 = (x1,y1)
                             | otherwise = let (x2, y2) = findBest f cmp xs in
                                              if cmp x1 x2 then (x1,y1) else (x2,y2)
 
-depthh = 3
-
-------------------ZŁOTO--------------------------------
-
-listOfTurns:: Turn -> [Turn] -> [Turn]
-listOfTurns x xs = (doMove x):xs
-
-getMoveFromTurn:: [Turn] -> Move
-getMoveFromTurn (a:b:xs) = getDifference (fst a) (concat $ boardToList(fst a)) (fst b) (concat $ boardToList(fst b))
-getMoveFromTurn (a:xs) = getDifference (fst a) (concat $ boardToList(fst a)) initBoard (concat $ boardToList(initBoard))
-
-findSquarePos:: Board -> Square -> [Position] -> Position
-findSquarePos b sqr (x:list) | getSquarePos b x == sqr = x
-                             | otherwise = findSquarePos b sqr list
-
-getDifference:: Board -> [Square] -> Board -> [Square] -> Move
-getDifference b1 (x:xs) b2 (y:ys) = case compareSquare x y of
-                              True -> getDifference b1 xs b2 ys
-                              False -> (findSquarePos b1 x lista, findSquarePos b2 x lista)
-
-compareSquare:: Square -> Square -> Bool
-compareSquare a b | a == b = True
-                  | otherwise = False
-
-----------------------------------------------------------------------------------------------
-doMove::Turn -> Turn
-doMove z = case (genGameTree depthh z) of
-                  GameTree p [] -> p
-                  GameTree (_, f) xs -> snd (findBest f (comp f) (map (\x->(play x, turn x)) xs))
-    where comp White = (>)
-          comp Black = (<)
+                                             -}
 
 
 
-printPosition::Either Turn String->String
-printPosition (Left zust) = '\n':showBoard (boardToList(fst zust))
-printPosition (Right s) = '\n':s
-
-
-gameComp::Turn->[Either Turn String]
-gameComp st | sw > final  = [Right "White wins!"]
-            | sw < -final = [Right "Black wins!"]
-            | otherwise = (Left st):gameComp (doMove st)
-   where sw = evalState st
+                                             ----CO PODAC W FIND PATH
 
 
 
-applyAll::a->[a->a]->a
-applyAll a [] = a
-applyAll a (f:xs) = applyAll (f a) xs
+cmp:: Player -> (Integer -> Integer -> Bool)
+cmp White = (>)
+cmp Black = (<)
+
+originPath:: Player -> GameTree -> (Integer,GameTree)
+originPath pl tree = findPath pl tree tree
+
+nextTurn:: Turn -> Turn
+nextTurn (b,pl,pos) = let
+    branches = getBranches (genGameTree depth (b,pl,pos)) []
+    tree = genGameTree depth (b,pl,pos)
+    firstBranch = head branches
+    firstBranchValue = evalTurn (turn firstBranch)
+  in turn (getBest (map (originPath pl) branches) (cmp $ enemy pl) (firstBranchValue, firstBranch))
+
+
+getBest:: [(Integer,GameTree)] -> (Integer -> Integer -> Bool) -> (Integer,GameTree) -> GameTree
+getBest [] operator (val,tree) = tree
+getBest ((actualVal, node):xs) operator (val,tree) = case operator actualVal val of
+  True -> getBest xs operator (actualVal, node)
+  otherwise -> getBest xs operator (val,tree)
+
+
+
+--bestTurnValue::Turn -> Integer
+--bestTurnValue (b,pl) = case pl of
+--  White -> maximum $ map fst (map (findPath (genGameTree depth (b,pl))) (getBranches (genGameTree depth (b,pl)) []))
+--  Black -> minimum $ map fst (map (findPath (genGameTree depth (b,pl))) (getBranches (genGameTree depth (b,pl)) []))
+
+
+--findPathTable:: [GameTree] -> [(Integer,GameTree)] -> [(Integer,GameTree)]
+--findPathTable (x:xs) ys = findPathTable xs (x:(findPath x ))
+
+
+
+findPath:: Player -> GameTree -> GameTree -> (Integer,GameTree)
+findPath p origin (GameTree node []) = (evalTurn node, origin)
+findPath p origin actual@(GameTree (b, pl,_) xs) | pl == p   = findPath p origin (chooseBestBranch (cmp $ enemy p) (actualVal actual) (evalBranch actual []))
+                                               | otherwise = (bestVal, origin)
+    where
+          actualVal (GameTree node xs) = (evalTurn node, GameTree node xs)
+          branches = getBranches actual []
+          firstBranch = head branches
+          firstBranchValue = evalTurn (turn firstBranch)
+          best = getBest (map (findPath p origin) (branches)) (cmp p) (firstBranchValue, firstBranch)
+          bestVal = evalTurn (turn best)
+
+
+getBranches:: GameTree -> [GameTree] -> [GameTree]
+getBranches (GameTree node (x:xs)) ys = getBranches (GameTree node xs) (x:ys)
+getBranches (GameTree node []) ys = ys
+
+evalBranch::GameTree -> [(Integer,GameTree)] -> [(Integer,GameTree)]
+evalBranch (GameTree node (x:xs)) ys = evalBranch (GameTree node xs) ((evalTurn (turn x), x):ys)
+evalBranch (GameTree node []) ys = ys
+
+chooseBestBranch:: (Integer -> Integer -> Bool) -> (Integer,GameTree) -> [(Integer,GameTree)] -> GameTree
+chooseBestBranch cmp (val,node) ((maxVal, newNode):xs)  = case cmp val maxVal of
+                      True -> chooseBestBranch cmp (val, node) xs
+                      otherwise -> chooseBestBranch cmp (maxVal, newNode) xs
+chooseBestBranch cmp (val,node) [] = node
+
+
+
+
+{-
+findPath:: GameTree -> Integer -> GameTree ->  GameTree
+findPath (GameTree node xs) [] root = root
+findPath (GameTree (b, player) xs) level root = findPath (chooseBestBranch
+         (cmp (enemy player)) (actualNode (GameTree (b, (enemy player)) xs)) (evalBranch (GameTree (b, player) xs) [])) (level-1) root
+    where cmp White = (>)
+          cmp Black = (<)
+          actualNode (GameTree node xs) = (evalTurn node, GameTree node xs)
+-}
+
+
+{-
+GameTree (_, player) (x:xs) -> snd (chooseBestBranch player (cmp player) (evalTurn x, x) (evalBranch xs))
+
+evalBranch::GameTree -> [(Integer,GameTree)] -> [(Integer,GameTree)]
+evalBranch (GameTree node (x:xs)) ys = evalBranch (GameTree node xs) ((evalTurn x, turn x):ys)
+evalBranch (GameTree node []) ys = ys
+
+chooseBestBranch:: Player -> (Integer -> Integer -> Bool) -> (Integer,GameTree) -> [(Integer,GameTree)] -> GameTree
+chooseBestBranch cmp ((val,node):xs) (maxVal, newNode) = case cmp val zero of
+                      True -> chooseBestBranch cmp xs (val, node)
+                      otherwise -> chooseBestBranch cmp xs (maxVal, newNode)
+where opossiteComp (>) = (<)
+opossiteComp (<) = (>)
+
+oppositeComp:: (Integer -> Integer -> Bool) -> (Integer -> Integer -> Bool)
+oppositeComp (>) = (<)
+oppositeComp (<) = (>)
+
+
+
+bestMove :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
+bestMove _ _ [x] = x
+bestMove player cmp ((val,trn):xs) | winningState player trn = (val,trn)
+                                   | otherwise = let (x, y) = bestMove player cmp xs in
+                                                if cmp val x then (val,trn) else (x,y)
+
+try::GameTree->Integer
+try (GameTree turn []) = evalTurn turn
+try (GameTree (_, White) xs) = maximum (map evalTurn (snd xs))
+try (GameTree (_, Black) xs) = minimum (map evalTurn (snd xs))
+
+evalBranch::Player -> (Integer -> Integer -> Bool) -> GameTree -> [(Integer,GameTree)] -> GameTree
+evalBranch pl cmp (GameTree node (x:xs)) ys = evalBranch (GameTree node xs) ((evalTurn x, turn x):ys)
+evalBranch pl cmp (GameTree node []) ys = ys
+  where cmp White = (>)
+        cmp Black = (<)
+
+oppositeComp:: (Integer -> Integer -> Bool) -> (Integer -> Integer -> Bool)
+oppositeComp (>) = (<)
+oppositeComp (<) = (>)
+
+
+--na kazdym poziomie zaglebienia wybeira najlepsza dla siebie opcje
+-}

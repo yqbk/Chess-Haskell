@@ -71,10 +71,8 @@ readPiece 'r' = (Piece Black Rook)
 readPiece 'q' = (Piece Black Queen)
 readPiece 'k' = (Piece Black King)
 
-
 infinity = 1000::Integer
-final = 900::Integer
-
+final = 900::Integer  -- kto ma mniej niz 900 przegrywa
 
 typeValue:: Type -> Integer
 typeValue Puste = 0

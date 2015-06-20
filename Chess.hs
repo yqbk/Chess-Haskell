@@ -1,4 +1,4 @@
-module Chess where
+module Main where
 
 import Board.Moves
 import Board.Board
@@ -6,6 +6,7 @@ import Board.Fields
 import Board.Game
 import Board.Algorithm
 import Board.Pieces
+import Board.Utils
 import Data.List (intercalate)
 import Data.Vector (Vector,toList,fromList,(!),(//))
 import qualified Data.Vector as V
@@ -19,8 +20,32 @@ import Data.Maybe
 type Move = Board->Board
 type Game = [Move]
 
+
+applyAll::a->[a->a]->a
+applyAll a [] = a
+applyAll a (f:xs) = applyAll (f a) xs
+
+printPosition::Either Turn String->String
+printPosition (Left zust) = '\n':showBoard (boardToList(fst' zust))
+printPosition (Right s) = '\n':s
+
+
+gameComp::Turn->[Either Turn String]
+gameComp st | sw > final  = [Right "White wins!"]
+            | sw < -final = [Right "Black wins!"]
+            | otherwise = (Left st):gameComp (nextTurn st)
+   where sw = evalTurn st
+
 playGame::Game->Board
 playGame = applyAll initBoard
+
+{-
+prettyGameTree::GameTree->String
+prettyGameTree = prettyGameTree2 0
+   where prettyGameTree2 x (GameTree z bs) = showBoardIndent (10*x) (boardToList(fst z)) ++
+                                               ' ':show (evalTurn z) ++
+                                               concatMap (prettyGameTree2 (x+1)) bs
+-}
 
 mateBoard1 =
               [[Nothing, Nothing, Nothing, Just (Piece Black Queen), Nothing, Nothing, Just (Piece Black  King), Nothing],
@@ -45,26 +70,15 @@ mateBoard2 =
 listToBoard:: [[Maybe Piece]] -> Board
 listToBoard list = Board $ fromList $ map fromList $ concat [list]
 
-mate1 = (listToBoard mateBoard1, White)
-mate2 = (listToBoard mateBoard2, Black)
+mate1 = (listToBoard mateBoard1, White, zeroMove)
+mate2 = (listToBoard mateBoard2, Black, zeroMove)
 
--- Falkbeer Countergambit
-{-
-exampleOpening = [move' "e2" "e4",
-                  move' "e7" "e5",
-                  move' "f2" "f4",
-                  move' "d7" "d5"]
--}
---outputExampleOpening = putStr $ showBoard $ playGame exampleOpening
---exampleGame = putStr $ concatMap (("\n"++) . showBoard . snd ) $ take 10 $ iterate doMove (White,initBoard)
+
 exampleMateGame1 = putStr $ concatMap printPosition $ gameComp mate1
 exampleMateGame2 = putStr $ concatMap printPosition $ gameComp mate2
-start = putStr $ concatMap printPosition $ gameComp (initBoard, White)
+start = putStr $ concatMap printPosition $ gameComp (initBoard, White, zeroMove)
 
 -------------------------------------------------------
-
-
-
 
 parseLetter :: Parser Char
 parseLetter = oneOf "abcdefgh"
@@ -122,6 +136,6 @@ main = do
   --let args = ["w"]
   case (listToMaybe args) of
     Just "b" -> go
-    Just "w" -> putStrLn "a2c4" >> hFlush stdout>> go -- białe wykonują pierwszy ruch
+    Just "w" -> putStrLn "a2c4" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
     Nothing -> go  -- domyślnie grają czarne
     where go = evalStateT doPlay []

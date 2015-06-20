@@ -20,7 +20,8 @@ module Board.Moves
   getPlayerPos,
   moveGenerator,
   friendlyPieces,
-  nextTurn,
+  nextPossibleTurn,
+  pawnAttack,
   Turn,
   move'
   )
@@ -34,7 +35,7 @@ import Data.Vector (Vector,toList,fromList,(!),(//))
 import qualified Data.Vector as V
 
 
-type Turn = (Board, Player)
+type Turn = (Board, Player, (String,String))
 -- o zrobienia data Turn = Turn {board::Board, player::Player, move::Move}
 
 direction:: Player -> Int
@@ -87,7 +88,7 @@ getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
                       Just (Piece p King) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves King)) []) []
                       Just (Piece p Knight) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves Knight)) []) []
-                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMovesPawn pos p)) []) []
+                      Just (Piece p Pawn) -> movesNotFriendlyFire board p (movesOnBoard ((correctPawnMove board pos (map (add pos) (getMovesPawn board pos p)) [])++(pawnAttack board p pos)) []) []
                       Just (Piece p x) -> concatMap (jump board pos 1) (getMoves x)
                       Nothing -> []
 
@@ -99,14 +100,39 @@ pawnFirstMove (x,y) pl = case pl of
 --pawnEnPassant:: Position -> Player -> Bool
 --pawnEnPassant (x,y) pl
 
-getMovesPawn :: Position -> Player -> [Position]
-getMovesPawn pos pl = case pawnFirstMove pos pl of
+
+
+pawnAttack:: Board -> Player -> Position -> [Position]
+pawnAttack b pl pos = case pl of
+                      White -> concatMap (checkPawnAttack b pos) ((1,-1):(1,1):[])
+                      otherwise -> concatMap (checkPawnAttack b pos) ((-1,-1):(-1,1):[])
+
+
+checkPawnAttack:: Board -> Position -> Position -> [Position]
+checkPawnAttack b pos new | notOnBoard destination = []
+                          | otherwise = case getSquarePos b destination of
+                             Nothing -> []
+                             Just (Piece pl _) -> case pl == pl2 of
+                                                  True -> []
+                                                  False -> [destination]
+              where destination = add new pos
+                    pl2 = getPlayerPos b pos
+
+correctPawnMove:: Board -> Position -> [Position] -> [Position] ->[Position]
+correctPawnMove b pos (x:xs) y = case getSquarePos b x of
+                              Nothing -> correctPawnMove b pos xs (x:y)
+                              otherwise -> correctPawnMove b pos xs y
+correctPawnMove b pos [] y = y
+
+
+getMovesPawn :: Board -> Position -> Player -> [Position]
+getMovesPawn b pos pl = case pawnFirstMove pos pl of
                   True -> case pl of
-                          Black -> [(-1,0),(-2,0)]
-                          White -> [(1,0),(2,0)]
+                          Black -> ((-1,0):(-2,0):[])
+                          White -> ((1,0):(2,0):[])
                   False -> case pl of
-                          Black -> [(-1,0)]
-                          White -> [(1,0)]
+                          Black -> ((-1,0):[])
+                          White -> ((1,0):[])
 
 jump:: Board -> Position -> Int -> Position -> [Position]
 jump b pos n new | notOnBoard destination = []
@@ -171,111 +197,16 @@ moveGenerator b pos = case getSquarePos b pos of
                       Nothing -> []
                       Just piece -> map (move b pos) $ getPieceMoves b pos
 
+getMove::Board -> Position -> [Position]
+getMove b pos = case getSquarePos b pos of
+                      Nothing -> []
+                      Just piece ->  getPieceMoves b pos
+
 friendlyPieces:: Board -> Player -> [Position]
 friendlyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], friendlyFire pl (getSquarePos b (x,y))]
 
 enemyPieces:: Board -> Player -> [Position]
 enemyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], not(friendlyFire pl (getSquarePos b (x,y))), not(empty b (x,y))]
 
-nextTurn:: Turn -> [Turn]
-nextTurn (board,player) = [(newBoard,enemy player)|pos<-enemyPieces board player, newBoard<-moveGenerator board pos]
-
-
-
-
-{-
-colorPos::PieceColor->Board->[Pos]
-colorPos f board = [(a, b)|a<-[0..7],b<-[0..7], hasColor f (getSquare board (a,b))]
-
-hasColor::PieceColor->Square->Bool
-hasColor _ Nothing = False
-hasColor f1 (Just (Piece a f2)) = f1 == f2
-
-
-type Turn = (Board, Player)
-type State = (PieceColor, Board)
-notColor b f p      = inside p && not (hasColor f (getSquare b p))
-empty b p           = inside p && Nothing == (getSquare b p)
-oppositePiece b f p = inside p && hasColor (oppositeColor f) (getSquare b p)
-
-nextStates::State->[State]
-nextStates (f, b) = [(oppositeColor f, b')|pos<-colorPos f b, b'<-genMoves b pos]
--}
-
---getPiecePossibleMoves:: Board -> Position -> [Position]
-
-{-
-
-
-
-
-
-genPieceMoves:: Board -> Position -> [Position]
-genPieceMoves b pos = case getPiece b pos of
-                      King -> 1
-
-
-
-genMoves::Board -> Position -> [Board]
-genMoves b pos = case getSquarePos b pos of
-                  Nothing -> []
-                  Just p -> map (flip (movePos pos) b) $ genPieceMoves b pos p
-
-
-genPieceMoves:: Board -> Position -> [Position]
-genPieceMoves b pos = let
-  name = expression
-  in expression
-
-genPieceMoves::Board->Pos->Piece->[Position]
-genPieceMoves b pos (Piece Knight f) = let
-  name = expression
-  in expression
-
-
-
-  [coord|v<-moves Knight, let coord = addPair pos v, notColor b f coord]
-
-
-addPair::(Int,Int)->(Int,Int)->(Int,Int)
-addPair (a,b) (c,d) = (a+c,b+d)
--}
-
-{-
-
-genPieceMoves b pos (Piece King f) = [coord|v<-moves King, let coord = addPair pos v, notColor b f coord]
-genPieceMoves b pos (Piece Pawn f) = (filter (empty b) [addPair pos (direction f, 0)]) ++
-                                     (filter (oppositePiece b f) (map (addPair pos) [(direction f, 1),(direction f, -1)]))
-genPieceMoves b pos (Piece x f) = concatMap (iterateDirection 1 pos b f) (moves x)
-
-
-notColor b f p      = inside p && not (hasColor f (getSquare b p))
-empty b p           = inside p && Nothing == (getSquare b p)
-oppositePiece b f p = inside p && hasColor (oppositeColor f) (getSquare b p)
-
-
--}
-{-
-getPossibleMoves (Piece White Pawn)   = [()]
-getPossibleMoves (Piece White Knight) = [()]
-getPossibleMoves (Piece White Bishop) = [()]
-getPossibleMoves (Piece White Rook)   = [()]
-getPossibleMoves (Piece White Queen)  = [()]
-getPossibleMoves (Piece White King)   = [()]
-getPossibleMoves (Piece Black Pawn)   = [()]
-getPossibleMoves (Piece Black Knight) = [()]
-getPossibleMoves (Piece Black Bishop) = [()]
-getPossibleMoves (Piece Black Rook)   = [()]
-getPossibleMoves (Piece Black Queen)  = [()]
--}
-
-
-{-
-getPiece:: Field -> Piece
-getPiece x y
-
-
-getMove:: Field -> Board -> [Field]
-getMove fld board = let
-  c = showSquare (getSquare board fld)
-  -}
+nextPossibleTurn:: Turn -> [Turn]
+nextPossibleTurn (board,player,(x,y)) = [(newBoard,enemy player,(posToStr pos, posToStr newPos))|pos<-enemyPieces board player, newBoard<-moveGenerator board pos, newPos<- getMove board pos]
