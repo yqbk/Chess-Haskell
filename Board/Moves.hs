@@ -24,7 +24,10 @@ module Board.Moves
   Turn,
   move',
   enemyPieces,
-  pawnFirstMove
+  pawnFirstMove,
+  promotionTurn,
+  isPromotion,
+  putNew
   )
 where
 
@@ -79,6 +82,15 @@ movesNotFriendlyFire board player [] s = s
 possible:: Board -> Player -> Position -> Bool
 possible board player pos = onBoard pos && not (friendlyFire player (getSquarePos board pos))
 
+jump:: Board -> Position -> Int -> Position -> [Position]
+jump b pos n new | notOnBoard destination = []
+                 | otherwise = case getSquarePos b destination of
+                           Nothing -> destination:jump b pos (n+1) new
+                           Just (Piece pl _) -> case pl == pl2 of
+                                                  True -> []
+                                                  False -> [destination]
+    where destination = add (multiply new n) pos
+          pl2 = getPlayerPos b pos
 ------------------------------------------------------------------
 getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
@@ -130,15 +142,21 @@ getMovesPawn b pos pl = case pawnFirstMove pos pl of
                           Black -> ((-1,0):[])
                           White -> ((1,0):[])
 
-jump:: Board -> Position -> Int -> Position -> [Position]
-jump b pos n new | notOnBoard destination = []
-                 | otherwise = case getSquarePos b destination of
-                           Nothing -> destination:jump b pos (n+1) new
-                           Just (Piece pl _) -> case pl == pl2 of
-                                                  True -> []
-                                                  False -> [destination]
-    where destination = add (multiply new n) pos
-          pl2 = getPlayerPos b pos
+promotion:: Board -> Player -> Position -> Board
+promotion b pl (x,y) = case isPromotion b (x,y) of
+  True -> putNew b pl (x,y)
+  otherwise -> b
+
+isPromotion:: Board -> Position -> Bool
+isPromotion b (x,y) = case getSquarePos b (x,y) of
+                      Just (Piece _ Pawn) ->  (x==0)||(x==7)
+                      otherwise -> False
+
+putNew:: Board -> Player -> Position -> Board
+putNew (Board b) pl (x,y) = Board $ b // [ (x,((b ! x) // [(y,(Just (Piece pl Queen)))]))]
+
+promotionTurn::  Turn -> Bool
+promotionTurn (b,pl,mv) = or $ map (isPromotion b) lista
 
 ------------------------------------------------------------------
 deleteSquare:: Board -> Field -> Board
@@ -185,7 +203,11 @@ move' board (str) = let
 
 
 move:: Board -> Position -> Position -> Board
-move board a b = deletePos (movePos board a b) a
+move board a b | isPromotion (deletePos (movePos board a b) a) b = putNew (deletePos (movePos board a b) a) pl b
+               | otherwise = deletePos (movePos board a b) a
+  where
+    Just (Piece pl x) = getSquarePos board a
+
 
 ---------
 pieceJump b pos (Piece x f) = concatMap (jump b pos 1) (getMoves f)

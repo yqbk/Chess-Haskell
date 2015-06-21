@@ -31,8 +31,8 @@ printPosition (Right s) = '\n':s
 
 
 gameComp::Turn->[Either Turn String]
-gameComp st | sw > final  = [Right "White wins!"]
-            | sw < -final = [Right "Black wins!"]
+gameComp st | sw > final  = [Right "Black wins!"]
+            | sw < -final = [Right "White wins!"]
             | otherwise = (Left st):gameComp (nextTurn st)
    where sw = evalTurn st
 
@@ -129,8 +129,9 @@ play i = do
 
 
 actualBoard:: [String] -> Board -> Board
-actualBoard (x:xs) b = actualBoard xs (move' b x)
 actualBoard [] b = b
+actualBoard (x:xs) b = actualBoard xs (move' b x)
+
 
 
 responseMove:: Board -> String

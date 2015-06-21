@@ -46,6 +46,7 @@ prefPawnPos b pl (x,y) = case pl of
    White -> maximum ((toInteger(quot (abs (8 - x)) 2)):1:[])
    Black -> maximum ((toInteger(quot (abs ((-1) - x)) 2)):1:[])
 
+
 ---------------------------------------------------------
 ---- Game Tree ----
 ---------------------------------------------------------
@@ -72,7 +73,7 @@ winningState Black turn = evalTurn turn < -final
 ---- Minimax algorithm ----
 ---------------------------------------------------------
 
-depth = 2
+depth = 3
 
 
 
@@ -92,6 +93,7 @@ nextTurn z = case (genGameTree depth z) of
 findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
 findBest _ _ [x] = x
 findBest f cmp ((x1,y1):xs) | winningState f y1 = (x1,y1)
+                            | promotionTurn y1 = (x1,y1)
                             | otherwise = let (x2, y2) = findBest f cmp xs in
                                              if cmp x1 x2 then (x1,y1) else (x2,y2)
 
