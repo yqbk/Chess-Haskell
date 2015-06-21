@@ -62,10 +62,10 @@ endGame:: Turn -> Bool
 endGame turn = value > final || value < -final
    where value = evalTurn turn
 
-winningState::Player->Turn->Bool
-winningState White turn = evalTurn turn > final --- dopisać szachmat
-winningState Black turn = evalTurn turn < -final
---winningState _ turn = val > final || val < -final ---- ??? up
+winningTurn::Player -> Turn -> Bool
+winningTurn White turn = evalTurn turn > final --- dopisać szachmat
+winningTurn Black turn = evalTurn turn < -final
+--winningTurn _ turn = val > final || val < -final ---- ??? up
   --where val = evalTurn turn
 
 
@@ -77,34 +77,34 @@ depth = 3
 
 
 
+{-
+try::GameTree -> Integer
+try (GameTree p []) = evalTurn p
+try (GameTree (_,White,_) xs) = maximum (map try xs)
+try (GameTree (_,Black,_) xs) = minimum (map try xs)
 
-play::GameTree->Integer
-play (GameTree p []) = evalTurn p
-play (GameTree (_,White,_) xs) = maximum (map play xs)
-play (GameTree (_,Black,_) xs) = minimum (map play xs)
-
-nextTurn::Turn->Turn
+nextTurn::Turn -> Turn
 nextTurn z = case (genGameTree depth z) of
                   GameTree p [] -> p
-                  GameTree (_, f, _) xs -> snd (findBest f (comp f) (map (\x->(play x, turn x)) xs))
+                  GameTree (_, f, _) xs -> snd (findBest f (comp f) (map (\x->(try x, turn x)) xs))
     where comp White = (>)
           comp Black = (<)
 
 findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
 findBest _ _ [x] = x
-findBest f cmp ((x1,y1):xs) | winningState f y1 = (x1,y1)
+findBest f cmp ((x1,y1):xs) | winningTurn f y1 = (x1,y1)
                             | promotionTurn y1 = (x1,y1)
                             | otherwise = let (x2, y2) = findBest f cmp xs in
                                              if cmp x1 x2 then (x1,y1) else (x2,y2)
 
 
-
+-}
 
 
                                              ----CO PODAC W FIND PATH
 
 
-{-
+
 cmp:: Player -> (Integer -> Integer -> Bool)
 cmp White = (>)
 cmp Black = (<)
@@ -166,4 +166,3 @@ chooseBestBranch cmp (val,node) ((maxVal, newNode):xs)  = case cmp val maxVal of
                       True -> chooseBestBranch cmp (val, node) xs
                       otherwise -> chooseBestBranch cmp (maxVal, newNode) xs
 chooseBestBranch cmp (val,node) [] = node
--}

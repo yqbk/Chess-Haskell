@@ -68,16 +68,17 @@ notOnBoard = not . onBoard
 
 ------------------------------------------------------------------
 movesOnBoard:: [Position] -> [Position] -> [Position]
+movesOnBoard [] s = s
 movesOnBoard (x:xs) s = case onBoard x of
                         True -> movesOnBoard xs (x:s)
                         False -> movesOnBoard xs s
-movesOnBoard [] s = s
 
 movesNotFriendlyFire:: Board -> Player -> [Position] -> [Position] -> [Position]
+movesNotFriendlyFire board player [] s = s
 movesNotFriendlyFire board player (x:xs) s = case friendlyFire player (getSquarePos board x) of
                         False -> movesNotFriendlyFire board player xs (x:s)
                         True -> movesNotFriendlyFire board player xs s
-movesNotFriendlyFire board player [] s = s
+
 
 possible:: Board -> Player -> Position -> Bool
 possible board player pos = onBoard pos && not (friendlyFire player (getSquarePos board pos))

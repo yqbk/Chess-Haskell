@@ -71,7 +71,7 @@ listToBoard:: [[Maybe Piece]] -> Board
 listToBoard list = Board $ fromList $ map fromList $ concat [list]
 
 mate1 = (listToBoard mateBoard1, White, zeroMove)
-mate2 = (listToBoard mateBoard2, Black, zeroMove)
+mate2 = (listToBoard mateBoard2, White, zeroMove)
 
 
 exampleMateGame1 = putStr $ concatMap printPosition $ gameComp mate1
@@ -157,3 +157,15 @@ main = do
     Just "w" -> putStrLn "d7d5" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
     Nothing -> go  -- domyślnie grają czarne
     where go = evalStateT doPlay []
+
+
+  initialBoardStr = unlines [
+  			   "rnbqkbnr"
+  			  ,"........"
+  			  ,"........"
+  			  ,"........"
+  			  ,"........"
+  			  ,"........"
+  			  ,"........"
+  			  ,"RNBQKBNR"
+  			  ]
