@@ -9,7 +9,8 @@ module Board.Pieces
     getType,
     enemy,
     typeValue,
-    final
+    final,
+    piecePlayer
 ) where
 
 -- Typ gracza (czarny/biały)
@@ -85,6 +86,9 @@ typeValue King = infinity
 
 pieceValue:: Piece -> Integer
 pieceValue (Piece pl typ) = typeValue typ
+
+piecePlayer:: Piece -> Player
+piecePlayer (Piece pl typ) = pl
 
 getType:: Piece -> Type
 getType (Piece pl typ) = typ

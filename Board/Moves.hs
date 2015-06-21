@@ -66,7 +66,7 @@ onBoard, notOnBoard::Position -> Bool
 onBoard (a, b) = a >= 0 && b >= 0 && a <= 7 && b <= 7
 notOnBoard = not . onBoard
 
-------------------------------------------------------------------
+---- Moves for pieces ----
 movesOnBoard:: [Position] -> [Position] -> [Position]
 movesOnBoard [] s = s
 movesOnBoard (x:xs) s = case onBoard x of
@@ -92,7 +92,8 @@ jump b pos n new | notOnBoard destination = []
                                                   False -> [destination]
     where destination = add (multiply new n) pos
           pl2 = getPlayerPos b pos
-------------------------------------------------------------------
+
+
 getPieceMoves:: Board -> Position -> [Position]
 getPieceMoves board pos = case getSquarePos board pos of
                       Just (Piece p King) -> movesNotFriendlyFire board p (movesOnBoard (map (add pos) (getMoves King)) []) []
@@ -101,15 +102,14 @@ getPieceMoves board pos = case getSquarePos board pos of
                       Just (Piece p x) -> concatMap (jump board pos 1) (getMoves x)
                       Nothing -> []
 
+---- Pawn moves ----
 pawnFirstMove :: Position -> Player -> Bool
 pawnFirstMove (x,y) pl = case pl of
                         White -> x == 1
                         Black -> x == 6
 
 --pawnEnPassant:: Position -> Player -> Bool
---pawnEnPassant (x,y) pl
-
-
+--pawnEnPassant (x,y) pl  TO DO
 
 pawnAttack:: Board -> Player -> Position -> [Position]
 pawnAttack b pl pos = case pl of
@@ -143,6 +143,7 @@ getMovesPawn b pos pl = case pawnFirstMove pos pl of
                           Black -> ((-1,0):[])
                           White -> ((1,0):[])
 
+--- Pawn promotion ----
 promotion:: Board -> Player -> Position -> Board
 promotion b pl (x,y) = case isPromotion b (x,y) of
   True -> putNew b pl (x,y)
@@ -159,7 +160,7 @@ putNew (Board b) pl (x,y) = Board $ b // [ (x,((b ! x) // [(y,(Just (Piece pl Qu
 promotionTurn::  Turn -> Bool
 promotionTurn (b,pl,mv) = or $ map (isPromotion b) lista
 
-------------------------------------------------------------------
+---- Game Square utils ----
 deleteSquare:: Board -> Field -> Board
 deleteSquare (Board b) fld = let
   (x,y) = fieldToPos fld
@@ -180,7 +181,7 @@ getPlayerPos:: Board -> Position -> Player
 getPlayerPos b pos = case getSquarePos b pos of
                     Just (Piece pl _ ) -> pl
 
-------------------------------------------------------------------
+---- Moving Pieces on Board ----
 updateBoard:: Board -> Field -> Field -> Board
 updateBoard b bgn end = deleteSquare (moveFld b bgn end) bgn
 
@@ -202,7 +203,6 @@ move' board (str) = let
   b = strToPos (take 2 (str \\ halfStr))
   in move board a b
 
-
 move:: Board -> Position -> Position -> Board
 move board a b | isPromotion (deletePos (movePos board a b) a) b = putNew (deletePos (movePos board a b) a) pl b
                | otherwise = deletePos (movePos board a b) a
@@ -210,12 +210,7 @@ move board a b | isPromotion (deletePos (movePos board a b) a) b = putNew (delet
     Just (Piece pl x) = getSquarePos board a
 
 
----------
-pieceJump b pos (Piece x f) = concatMap (jump b pos 1) (getMoves f)
-
-empty b p = onBoard p && Nothing == (getSquarePos b p)
-
-------------------------------------------------------------------
+---- Move Generator ----
 moveGenerator:: Board -> Position -> [Board]
 moveGenerator b pos = case getSquarePos b pos of
                       Nothing -> []
@@ -225,6 +220,11 @@ getMove::Board -> Position -> [Position]
 getMove b pos = case getSquarePos b pos of
                       Nothing -> []
                       Just piece ->  getPieceMoves b pos
+
+
+pieceJump b pos (Piece x f) = concatMap (jump b pos 1) (getMoves f)
+
+empty b p = onBoard p && Nothing == (getSquarePos b p)
 
 friendlyPieces:: Board -> Player -> [Position]
 friendlyPieces b pl = [(x,y)|x<-[0..7], y<-[0..7], friendlyFire pl (getSquarePos b (x,y))]

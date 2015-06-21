@@ -7,7 +7,9 @@ fst',
 lst,
 zeroMove,
 multiply,
-add
+add,
+applyAll,
+cmp
 )
 where
 
@@ -41,5 +43,13 @@ multiply (a,b) x = (a*x,b*x)
 
 add:: Position -> Position -> Position
 add (x1,y1) (x2,y2) = (x1+x2,y1+y2)
+
+applyAll::a->[a->a]->a
+applyAll a [] = a
+applyAll a (f:xs) = applyAll (f a) xs
+
+cmp:: Player -> (Integer -> Integer -> Bool)
+cmp White = (>)
+cmp Black = (<)
 
 ----------------------------------------------------------------------------------------------

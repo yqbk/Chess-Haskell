@@ -3,7 +3,6 @@ module Main where
 import Board.Moves
 import Board.Board
 import Board.Fields
-import Board.Game
 import Board.Algorithm
 import Board.Pieces
 import Board.Utils
@@ -16,19 +15,18 @@ import Text.ParserCombinators.Parsec
 import System.IO
 import Data.Maybe
 
-
 type Move = Board->Board
 type Game = [Move]
 
+-------------------------------------------------------
+--------------------- Run Game ------------------------
+start = putStr $ concatMap printPosition $ gameComp (initBoard, White, zeroMove)
+-------------------------------------------------------
 
-applyAll::a->[a->a]->a
-applyAll a [] = a
-applyAll a (f:xs) = applyAll (f a) xs
-
+---- Game Utils ----
 printPosition::Either Turn String->String
 printPosition (Left zust) = '\n':showBoard (boardToList(fst' zust))
 printPosition (Right s) = '\n':s
-
 
 gameComp::Turn->[Either Turn String]
 gameComp st | sw > final  = [Right "Black wins!"]
@@ -39,47 +37,10 @@ gameComp st | sw > final  = [Right "Black wins!"]
 playGame::Game->Board
 playGame = applyAll initBoard
 
-{-
-prettyGameTree::GameTree->String
-prettyGameTree = prettyGameTree2 0
-   where prettyGameTree2 x (GameTree z bs) = showBoardIndent (10*x) (boardToList(fst z)) ++
-                                               ' ':show (evalTurn z) ++
-                                               concatMap (prettyGameTree2 (x+1)) bs
--}
-
-mateBoard1 =
-              [[Nothing, Nothing, Nothing, Just (Piece Black Queen), Nothing, Nothing, Just (Piece Black  King), Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Just (Piece Black Bishop), Nothing, Just (Piece Black  Pawn), Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Just (Piece Black  Pawn), Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Just (Piece Black  Pawn), Just (Piece White Pawn), Nothing, Nothing, Just (Piece White Queen)],
-               [Nothing, Nothing, Nothing, Just (Piece White Pawn), Nothing, Just (Piece Black  Rook), Nothing, Nothing],
-               [Nothing, Nothing, Just (Piece White Pawn), Nothing, Nothing, Nothing, Nothing, Just (Piece White Bishop)],
-               [Nothing, Nothing, Just (Piece White Pawn), Nothing, Nothing, Just (Piece White Pawn), Nothing, Just (Piece White Pawn)],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Just (Piece White King), Nothing]]
-
-mateBoard2 =
-              [[Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Just (Piece White Rook), Nothing, Nothing, Nothing, Just (Piece Black King), Nothing, Nothing],
-               [Just (Piece White Rook), Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing],
-               [Nothing, Nothing, Nothing, Nothing, Nothing, Just (Piece White King), Nothing, Nothing]]
-
 listToBoard:: [[Maybe Piece]] -> Board
 listToBoard list = Board $ fromList $ map fromList $ concat [list]
 
-mate1 = (listToBoard mateBoard1, White, zeroMove)
-mate2 = (listToBoard mateBoard2, White, zeroMove)
-
-
-exampleMateGame1 = putStr $ concatMap printPosition $ gameComp mate1
-exampleMateGame2 = putStr $ concatMap printPosition $ gameComp mate2
-start = putStr $ concatMap printPosition $ gameComp (initBoard, White, zeroMove)
-
--------------------------------------------------------
-
+---- Parser ----
 parseLetter :: Parser Char
 parseLetter = oneOf "abcdefgh"
 
@@ -97,6 +58,9 @@ instance Show ACN where
 acnToStr:: ACN -> String
 acnToStr (ACN (a,b,c,d,y)) = a:b:c:d:y:[]
 
+strToACN:: String -> ACN
+strToACN (a:b:c:d:y:[]) = (ACN (a,b,c,d,y))
+
 parseACN :: Parser ACN
 parseACN = do
           x1 <- parseLetter
@@ -106,66 +70,71 @@ parseACN = do
           prm <- option ' ' parsePromotion
           return $ ACN (x1,y1,x2,y2,prm)
 
--- stanem jest lista ruchów
+---- Gameplay ----
 type Gameplay a = StateT ([ACN]) IO a
 
 printHistory :: Show a => [a] -> IO ()
 printHistory h =  do
   hPutStrLn stderr "\n--------------\n--Game history--"
   mapM_ (hPutStrLn stderr.show) h
-  --hPutStrLn stderr
   hPutStrLn stderr "----------------\n"
 
 
-play :: String -> Gameplay ()
+doPlay :: Gameplay ()
+doPlay = liftIO getContents >>= (mapM_ (play)) . lines
+
+
+play ::  String -> Gameplay ()
 play i = do
+  --enemy <- hGetLine stdout
   s<- get
   case parse parseACN "Parsing ACN error" i of
     Right acn -> put (acn:s)
     Left _ -> fail ("koniec")
-  --liftIO $ printHistory s
-  --(liftIO $ hPutStrLn stderr $ "\nactual move = " ++ (show acn)) >>
-  liftIO $ putStrLn (responseMove $ actualBoard (map acnToStr s) initBoard) >> hFlush stdout
+  s' <- get
+  let b = actualBoard (map acnToStr (reverse s')) initBoard "a1a1"
+  let pos = acnToPos (head s')
+  let pl = getPlayer (fst b) pos
+  let (x1,x2) = lst $ nextTurn (fst b, pl, zeroMove)
+  case parse parseACN "Parsing ACN error" (x1++x2) of
+    Right acn -> put (acn:s')
+    Left _ -> fail ("koniec")
+  liftIO $ putStrLn (responseMove pl (fst b) ) >> hFlush stdout
+  --liftIO $ printHistory s'
 
+---- Gameplay Utils ----
+whoPlays:: String -> Board ->  Player
+whoPlays (x1:x2:x3:x4:[]) b = getPlayerPos b $ strToPos $ x3:x4:[]
 
-actualBoard:: [String] -> Board -> Board
-actualBoard [] b = b
-actualBoard (x:xs) b = actualBoard xs (move' b x)
+actualBoard:: [String] -> Board -> String -> (Board,String)
+actualBoard [] b str = (b,str)
+actualBoard (x:xs) b str = actualBoard xs (move' b x) x
 
-
-
-responseMove:: Board -> String
-responseMove board = let
-  (_,_,(a,b)) = nextTurn (board, White, zeroMove)
+responseMove:: Player -> Board -> String
+responseMove pl board = let
+  (_,_,(a,b)) = nextTurn (board, pl, zeroMove)
   in a++b
 
+getPlayer:: Board -> Position -> Player
+getPlayer b pos = case getSquarePos b pos of
+    Just (Piece pl x) -> pl
+    otherwise -> Black
 
-doPlay :: Gameplay ()
-doPlay = liftIO getContents >>= (mapM_ play) . lines
+acnToPos:: ACN -> Position
+acnToPos acn = strToPos $ getStrAcnPos $ acnToStr acn
+
+getStrAcnPos:: String -> String
+getStrAcnPos (a:b:c:d:y:[]) = c:d:[]
 
 
+----------------------
+-------- Main --------
+----------------------
 main :: IO ()
 main = do
   args <- getArgs
-  --progName <- getProgName
-  --mapM_ putStrLn args
-  --putStrLn progName
-  --hPutStrLn stderr "Chess engine by Zbyszko z Bogdańca ®2015"
-  --let args = ["w"]
   case (listToMaybe args) of
     Just "b" -> go
-    Just "w" -> putStrLn "d7d5" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
-    Nothing -> go  -- domyślnie grają czarne
+    Just "w" -> putStrLn "d2d4" >> hFlush stdout >> go -- białe wykonują pierwszy ruch
+    Nothing -> putStrLn "d7d5" >> hFlush stdout >> go  -- domyślnie grają czarne
     where go = evalStateT doPlay []
-
-
-  initialBoardStr = unlines [
-  			   "rnbqkbnr"
-  			  ,"........"
-  			  ,"........"
-  			  ,"........"
-  			  ,"........"
-  			  ,"........"
-  			  ,"........"
-  			  ,"RNBQKBNR"
-  			  ]

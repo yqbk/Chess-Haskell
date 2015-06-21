@@ -63,11 +63,8 @@ endGame turn = value > final || value < -final
    where value = evalTurn turn
 
 winningTurn::Player -> Turn -> Bool
-winningTurn White turn = evalTurn turn > final --- dopisać szachmat
+winningTurn White turn = evalTurn turn > final
 winningTurn Black turn = evalTurn turn < -final
---winningTurn _ turn = val > final || val < -final ---- ??? up
-  --where val = evalTurn turn
-
 
 ---------------------------------------------------------
 ---- Minimax algorithm ----
@@ -75,42 +72,6 @@ winningTurn Black turn = evalTurn turn < -final
 
 depth = 3
 
-
-
-{-
-try::GameTree -> Integer
-try (GameTree p []) = evalTurn p
-try (GameTree (_,White,_) xs) = maximum (map try xs)
-try (GameTree (_,Black,_) xs) = minimum (map try xs)
-
-nextTurn::Turn -> Turn
-nextTurn z = case (genGameTree depth z) of
-                  GameTree p [] -> p
-                  GameTree (_, f, _) xs -> snd (findBest f (comp f) (map (\x->(try x, turn x)) xs))
-    where comp White = (>)
-          comp Black = (<)
-
-findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
-findBest _ _ [x] = x
-findBest f cmp ((x1,y1):xs) | winningTurn f y1 = (x1,y1)
-                            | promotionTurn y1 = (x1,y1)
-                            | otherwise = let (x2, y2) = findBest f cmp xs in
-                                             if cmp x1 x2 then (x1,y1) else (x2,y2)
-
-
--}
-
-
-                                             ----CO PODAC W FIND PATH
-
-
-
-cmp:: Player -> (Integer -> Integer -> Bool)
-cmp White = (>)
-cmp Black = (<)
-
-originPath:: Player -> GameTree -> (Integer,GameTree)
-originPath pl tree = findPath pl tree tree
 
 nextTurn:: Turn -> Turn
 nextTurn (b,pl,pos) = let
@@ -121,23 +82,14 @@ nextTurn (b,pl,pos) = let
   in turn (getBest (map (originPath pl) branches) (cmp pl) (firstBranchValue, firstBranch))
 
 
+originPath:: Player -> GameTree -> (Integer,GameTree)
+originPath pl tree = findPath pl tree tree
+
 getBest:: [(Integer,GameTree)] -> (Integer -> Integer -> Bool) -> (Integer,GameTree) -> GameTree
 getBest [] operator (val,tree) = tree
 getBest ((actualVal, node):xs) operator (val,tree) = case operator actualVal val of
   True -> getBest xs operator (actualVal, node)
   otherwise -> getBest xs operator (val,tree)
-
-
-
---bestTurnValue::Turn -> Integer
---bestTurnValue (b,pl) = case pl of
---  White -> maximum $ map fst (map (findPath (genGameTree depth (b,pl))) (getBranches (genGameTree depth (b,pl)) []))
---  Black -> minimum $ map fst (map (findPath (genGameTree depth (b,pl))) (getBranches (genGameTree depth (b,pl)) []))
-
-
---findPathTable:: [GameTree] -> [(Integer,GameTree)] -> [(Integer,GameTree)]
---findPathTable (x:xs) ys = findPathTable xs (x:(findPath x ))
-
 
 
 findPath:: Player -> GameTree -> GameTree -> (Integer,GameTree)
@@ -166,3 +118,27 @@ chooseBestBranch cmp (val,node) ((maxVal, newNode):xs)  = case cmp val maxVal of
                       True -> chooseBestBranch cmp (val, node) xs
                       otherwise -> chooseBestBranch cmp (maxVal, newNode) xs
 chooseBestBranch cmp (val,node) [] = node
+
+
+{-
+STARA WERSJA Minimax
+
+try::GameTree -> Integer
+try (GameTree p []) = evalTurn p
+try (GameTree (_,White,_) xs) = maximum (map try xs)
+try (GameTree (_,Black,_) xs) = minimum (map try xs)
+
+nextTurn::Turn -> Turn
+nextTurn z = case (genGameTree depth z) of
+                  GameTree p [] -> p
+                  GameTree (_, f, _) xs -> snd (findBest f (comp f) (map (\x->(try x, turn x)) xs))
+    where comp White = (>)
+          comp Black = (<)
+
+findBest :: Player -> (Integer -> Integer -> Bool) -> [(Integer, Turn)] -> (Integer, Turn)
+findBest _ _ [x] = x
+findBest f cmp ((x1,y1):xs) | winningTurn f y1 = (x1,y1)
+                            | promotionTurn y1 = (x1,y1)
+                            | otherwise = let (x2, y2) = findBest f cmp xs in
+                                             if cmp x1 x2 then (x1,y1) else (x2,y2)
+-}

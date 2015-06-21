@@ -33,7 +33,7 @@ readSquare c   = Just (readPiece c)
 boardToList :: Board -> [[Square]]
 boardToList (Board l) = toList $ V.map toList l
 
----- Build Board ----
+---- Build initial Board ----
 initBoard :: Board
 initBoard = Board $ fromList $ map fromList $ concat [
   [ whiteRearLine, whiteFrontLine ]
