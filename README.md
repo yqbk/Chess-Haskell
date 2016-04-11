@@ -1,7 +1,6 @@
 # Chess-Haskell
 
-Projekt ukończony.
+A chess game written in Haskell. Working opposite player AI algorithm. Default tactics added.
 
-Kompilacja: ghc Chess.hs
-
-Uruchomienie: ./Chess (opcjonalnie preferownay gracz -> b/w. Domyślnie gra biały)
+Compile: ghc Chess.hs
+Run: ./Chess (optional preferred player -> b/w. By default play white)
